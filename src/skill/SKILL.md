@@ -3,9 +3,6 @@ name: crap4ts
 description: Use when the user asks for a CRAP report, cyclomatic complexity analysis, or code quality metrics on a TypeScript project
 ---
 
-> The canonical copy of this skill ships inside the published npm package at
-> `src/skill/SKILL.md` and is installed by `npx crap4ts skill install`.
-
 # crap4ts — CRAP Metric for TypeScript
 
 Computes the **CRAP** (Change Risk Anti-Pattern) score for every function and method in a TypeScript project. CRAP combines cyclomatic complexity with test coverage to identify functions that are both complex and under-tested.

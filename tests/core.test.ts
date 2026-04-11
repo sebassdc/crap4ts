@@ -62,10 +62,10 @@ describe('buildEntries', () => {
     expect(entries[0].crap).toBe(20); // 4² + 4
   });
 
-  it('no statements in range gives 0% coverage', () => {
+  it('no statements in range gives 100% coverage (uninstrumented)', () => {
     const fns: FunctionInfo[] = [{ name: 'empty', startLine: 1, endLine: 2, complexity: 1 }];
     const fileData: FileCoverageData = { statementMap: {}, s: {} };
     const entries = buildEntries(fns, fileData, 'mod');
-    expect(entries[0].coverage).toBe(0);
+    expect(entries[0].coverage).toBe(100);
   });
 });

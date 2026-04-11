@@ -1,0 +1,22 @@
+{
+  "name": "crap4ts",
+  "version": "0.1.0",
+  "description": "CRAP metric for TypeScript projects",
+  "main": "dist/index.js",
+  "bin": {
+    "crap4ts": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
+    "vitest": "^2.0.0"
+  }
+}

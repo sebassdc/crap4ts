@@ -29,7 +29,7 @@ function runCoverage(runner: 'vitest' | 'jest', timeoutMs: number): { ok: boolea
     ? ['npx', 'vitest', 'run', '--coverage']
     : ['npx', 'jest', '--coverage', '--coverageReporters=json'];
   const result = spawnSync(cmd[0], cmd.slice(1), { stdio: 'inherit', timeout: timeoutMs });
-  const timedOut = (result as { signal?: string }).signal === 'SIGTERM' && result.status === null;
+  const timedOut = result.signal === 'SIGTERM' && result.status === null;
   return { ok: result.status === 0, timedOut };
 }
 

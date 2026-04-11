@@ -44,12 +44,17 @@ export function buildEntries(
 }
 
 export function analyzeFile(filePath: string, filesData: CoverageData, srcDir: string): CrapEntry[] {
-  const source = readFileSync(filePath, 'utf-8');
-  const fns = extractFunctions(source, filePath);
-  const absolutePath = resolve(filePath);
-  const module = sourceToModule(absolutePath, srcDir);
+  try {
+    const source = readFileSync(filePath, 'utf-8');
+    const fns = extractFunctions(source, filePath);
+    const absolutePath = resolve(filePath);
+    const module = sourceToModule(absolutePath, srcDir);
 
-  const fileData = filesData[absolutePath] ?? { statementMap: {}, s: {} };
+    const fileData = filesData[absolutePath] ?? { statementMap: {}, s: {} };
 
-  return buildEntries(fns, fileData, module);
+    return buildEntries(fns, fileData, module);
+  } catch (e) {
+    console.warn(`crap4ts: skipping ${filePath} (parse error: ${(e as Error).message})`);
+    return [];
+  }
 }

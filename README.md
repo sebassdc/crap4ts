@@ -125,6 +125,18 @@ Decision points that increase cyclomatic complexity:
 
 Nested functions and class bodies are skipped — only the enclosing function's body is analyzed.
 
+## Limitations
+
+- Only TypeScript (`.ts`) files are analyzed — `.tsx`, `.js`, and `.jsx` files are ignored.
+- Only functions found within the configured source directory (default: `src/`) are scanned.
+- Coverage data must be in Istanbul JSON format (`coverage-final.json`). Other coverage formats are not supported.
+- Runner detection is heuristic: crap4ts checks for Vitest config files first, then Jest config files, then falls back to the `scripts` field in `package.json`. Use `--runner vitest|jest` to override.
+- Nested functions are attributed to their enclosing function rather than being extracted as separate symbols.
+- Dynamic or computed method names (e.g., `[Symbol.iterator]()` or `["methodName"]()`) are not extracted.
+- Only statement coverage is used when computing the coverage fraction — branch and function coverage are ignored.
+
+For advanced usage patterns, see [docs/advanced-usage.md](docs/advanced-usage.md).
+
 ## Extracted Symbols
 
 - Top-level `function` declarations

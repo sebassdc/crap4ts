@@ -86,6 +86,16 @@ describe('detectRunner', () => {
     writeFileSync(join(cwd, 'jest.config.ts'), 'export default {}');
     expect(detectRunner()).toBe('vitest');
   });
+
+  it('defaults to vitest when package.json is malformed', () => {
+    writeFileSync(join(cwd, 'package.json'), '{ invalid json }');
+    const warns: string[] = [];
+    const warn = vi.spyOn(console, 'warn').mockImplementation((m: unknown) => { warns.push(String(m)); });
+    expect(detectRunner()).toBe('vitest');
+    expect(warns.some(w => w.includes('Unable to parse package.json'))).toBe(true);
+    expect(warns.some(w => w.includes('--runner'))).toBe(true);
+    warn.mockRestore();
+  });
 });
 
 describe('runCoverage', () => {
@@ -133,7 +143,82 @@ describe('runReport', () => {
     rmSync(cwd, { recursive: true, force: true });
   });
 
+  function createSrcWithFile(): void {
+    mkdirSync(join(cwd, 'src'));
+    writeFileSync(join(cwd, 'src', 'hello.ts'), 'export function hello() { return "hi"; }');
+  }
+
+  it('returns 1 when srcDir does not exist', async () => {
+    const errs: string[] = [];
+    const err = vi.spyOn(console, 'error').mockImplementation((m: unknown) => { errs.push(String(m)); });
+
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000 });
+    expect(code).toBe(1);
+    expect(errs.some(e => e.includes("Source directory 'src' not found"))).toBe(true);
+    expect(errs.some(e => e.includes('--src'))).toBe(true);
+    expect(mockSpawnSync).not.toHaveBeenCalled();
+
+    err.mockRestore();
+  });
+
+  it('returns 1 when srcDir has no TypeScript files', async () => {
+    mkdirSync(join(cwd, 'src'));
+    writeFileSync(join(cwd, 'src', 'readme.txt'), 'hello');
+    const errs: string[] = [];
+    const err = vi.spyOn(console, 'error').mockImplementation((m: unknown) => { errs.push(String(m)); });
+
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000 });
+    expect(code).toBe(1);
+    expect(errs.some(e => e.includes("No TypeScript files found in 'src'"))).toBe(true);
+    expect(mockSpawnSync).not.toHaveBeenCalled();
+
+    err.mockRestore();
+  });
+
+  it('returns 1 when no files match filters', async () => {
+    createSrcWithFile();
+    const errs: string[] = [];
+    const err = vi.spyOn(console, 'error').mockImplementation((m: unknown) => { errs.push(String(m)); });
+
+    const code = await runReport({ filters: ['nonexistent'], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000 });
+    expect(code).toBe(1);
+    expect(errs.some(e => e.includes('No files match the filters'))).toBe(true);
+    expect(errs.some(e => e.includes('nonexistent'))).toBe(true);
+    expect(mockSpawnSync).not.toHaveBeenCalled();
+
+    err.mockRestore();
+  });
+
+  it('returns 0 and logs note when analysis finds no functions', async () => {
+    mkdirSync(join(cwd, 'src'));
+    writeFileSync(join(cwd, 'src', 'empty.ts'), '// no functions here\nexport const x = 1;');
+
+    const coverageDir = join(cwd, 'coverage');
+    mockSpawnSync.mockImplementation(() => {
+      mkdirSync(coverageDir, { recursive: true });
+      writeFileSync(join(coverageDir, 'coverage-final.json'), JSON.stringify({}));
+      return {
+        status: 0, signal: null, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), pid: 1234,
+      } as any;
+    });
+
+    const logs: string[] = [];
+    const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+    const warns: string[] = [];
+    const warn = vi.spyOn(console, 'warn').mockImplementation((m: unknown) => { warns.push(String(m)); });
+    writeFileSync(join(cwd, 'vitest.config.ts'), 'export default {}');
+
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000 });
+    expect(code).toBe(0);
+    expect(warns.some(w => w.includes('No functions found'))).toBe(true);
+    expect(warns.some(w => w.includes('top-level functions'))).toBe(true);
+
+    log.mockRestore();
+    warn.mockRestore();
+  });
+
   it('removes stale coverage dir before running', async () => {
+    createSrcWithFile();
     const coverageDir = join(cwd, 'coverage');
     mkdirSync(coverageDir);
     writeFileSync(join(coverageDir, 'stale.json'), '{}');
@@ -151,6 +236,7 @@ describe('runReport', () => {
   });
 
   it('returns 1 when coverage run times out', async () => {
+    createSrcWithFile();
     mockSpawnSync.mockReturnValue({
       status: null, signal: 'SIGTERM', output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), pid: 1234,
     });
@@ -163,6 +249,7 @@ describe('runReport', () => {
   });
 
   it('returns 1 when coverage run fails', async () => {
+    createSrcWithFile();
     mockSpawnSync.mockReturnValue({
       status: 1, signal: null, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), pid: 1234,
     });
@@ -175,6 +262,7 @@ describe('runReport', () => {
   });
 
   it('returns 1 when coverage-final.json is missing after successful run', async () => {
+    createSrcWithFile();
     mockSpawnSync.mockReturnValue({
       status: 0, signal: null, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), pid: 1234,
     });

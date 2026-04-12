@@ -17,8 +17,13 @@ const JEST_CONFIGS = ['jest.config.ts', 'jest.config.js', 'jest.config.mjs'];
 
 function hasJestInPackageJson(): boolean {
   if (!existsSync('package.json')) return false;
-  const pkg = JSON.parse(readFileSync('package.json', 'utf-8'));
-  return !!(pkg.devDependencies?.jest || pkg.dependencies?.jest);
+  try {
+    const pkg = JSON.parse(readFileSync('package.json', 'utf-8'));
+    return !!(pkg.devDependencies?.jest || pkg.dependencies?.jest);
+  } catch {
+    console.warn("Unable to parse package.json while detecting the test runner. Fix package.json or use --runner to specify explicitly.");
+    return false;
+  }
 }
 
 export function detectRunner(): 'vitest' | 'jest' {
@@ -39,6 +44,23 @@ export function runCoverage(runner: 'vitest' | 'jest', timeoutMs: number): { ok:
 
 export async function runReport(opts: ReportOptions): Promise<number> {
   const { filters, srcDir, coverageDir, timeoutMs } = opts;
+
+  if (!existsSync(srcDir)) {
+    console.error(`Source directory '${srcDir}' not found. Use --src to specify a different directory.`);
+    return 1;
+  }
+
+  const allFiles = findSourceFiles(srcDir);
+  if (allFiles.length === 0) {
+    console.error(`No TypeScript files found in '${srcDir}'. Verify your source directory contains .ts files.`);
+    return 1;
+  }
+
+  const filtered = filterSources(allFiles, filters);
+  if (filtered.length === 0) {
+    console.error(`No files match the filters: [${filters.join(', ')}]. Check your filter arguments.`);
+    return 1;
+  }
 
   if (existsSync(coverageDir)) {
     try {
@@ -71,10 +93,11 @@ export async function runReport(opts: ReportOptions): Promise<number> {
 
   const filesData = parseCoverage(coverageDir);
   const resolvedSrc = resolve(srcDir);
-  const allFiles = findSourceFiles(srcDir);
-  const filtered = filterSources(allFiles, filters);
 
   const allEntries = filtered.flatMap(f => analyzeFile(f, filesData, resolvedSrc));
+  if (allEntries.length === 0) {
+    console.warn('No functions found. crap4ts analyzes top-level functions, arrow functions, and class methods.');
+  }
   const sorted = sortByCrap(allEntries);
   console.log(formatReport(sorted));
   return 0;

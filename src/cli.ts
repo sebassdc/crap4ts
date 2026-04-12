@@ -1,5 +1,25 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { runReport } from './report';
 import { parseOptions } from './options';
+
+function getVersion(): string {
+  const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'));
+  return pkg.version;
+}
+
+function formatHelp(): string {
+  return `Usage: crap4ts [options] [filters...]
+
+Options:
+  --src <dir>         Source directory to analyze (default: src)
+  --timeout <seconds> Analysis timeout in seconds (default: 600)
+  --help, -h          Show this help message
+  --version, -v       Show version number
+
+Subcommands:
+  skill               Manage the bundled AI skill (install | uninstall | show | path)`;
+}
 
 export async function runCli(argv: string[]): Promise<number> {
   if (argv[0] === 'skill') {
@@ -8,6 +28,14 @@ export async function runCli(argv: string[]): Promise<number> {
   }
   try {
     const opts = parseOptions(argv);
+    if (opts.mode === 'help') {
+      console.log(formatHelp());
+      return 0;
+    }
+    if (opts.mode === 'version') {
+      console.log(getVersion());
+      return 0;
+    }
     return await runReport(opts);
   } catch (e) {
     console.error((e as Error).message);

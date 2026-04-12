@@ -233,6 +233,9 @@ For advanced usage patterns, see [docs/advanced-usage.md](docs/advanced-usage.md
 - Top-level `function` declarations
 - Top-level `const f = () => {}` and `const f = function() {}`
 - Class `constructor`, methods, getters, and setters (named as `ClassName.methodName`)
+- Object literal methods, getters, and setters in top-level variable declarations (named as `varName.methodName` or `varName['string-key']`)
+
+Nested functions (functions defined inside other functions, methods, or arrows) are intentionally excluded. They are not extracted as separate symbols; their complexity is attributed to the enclosing function.
 
 ## Cross-Agent Skill
 

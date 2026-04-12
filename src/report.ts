@@ -72,30 +72,32 @@ export function evaluateThresholds(entries: CrapEntry[], opts: ReportOptions): s
   return null;
 }
 
-export async function runReport(opts: ReportOptions): Promise<number> {
-  const { filters, srcDir, coverageDir, timeoutMs } = opts;
-
-  if (!existsSync(srcDir)) {
-    console.error(`Source directory '${srcDir}' not found. Use --src to specify a different directory.`);
-    return 1;
+function findFiles(opts: ReportOptions): string[] | null {
+  if (!existsSync(opts.srcDir)) {
+    console.error(`Source directory '${opts.srcDir}' not found. Use --src to specify a different directory.`);
+    return null;
   }
 
-  const rawFiles = findSourceFiles(srcDir);
+  const rawFiles = findSourceFiles(opts.srcDir);
   const excludes = opts.excludes ?? [];
   const allFiles = excludes.length > 0
     ? rawFiles.filter(f => !excludes.some(ex => f.includes(ex)))
     : rawFiles;
   if (allFiles.length === 0) {
-    console.error(`No TypeScript files found in '${srcDir}'. Verify your source directory contains .ts files.`);
-    return 1;
+    console.error(`No TypeScript files found in '${opts.srcDir}'. Verify your source directory contains .ts files.`);
+    return null;
   }
 
-  const filtered = filterSources(allFiles, filters);
+  const filtered = filterSources(allFiles, opts.filters);
   if (filtered.length === 0) {
-    console.error(`No files match the filters: [${filters.join(', ')}]. Check your filter arguments.`);
-    return 1;
+    console.error(`No files match the filters: [${opts.filters.join(', ')}]. Check your filter arguments.`);
+    return null;
   }
 
+  return filtered;
+}
+
+function cleanStaleCoverage(coverageDir: string): void {
   if (existsSync(coverageDir)) {
     try {
       rmSync(coverageDir, { recursive: true, force: true });
@@ -103,6 +105,11 @@ export async function runReport(opts: ReportOptions): Promise<number> {
       console.warn(`Warning: failed to remove stale coverage dir ${coverageDir}: ${(e as Error).message}`);
     }
   }
+}
+
+function executeCoverage(opts: ReportOptions): { ok: boolean } {
+  const { coverageDir, timeoutMs } = opts;
+  cleanStaleCoverage(coverageDir);
 
   let ok: boolean;
   let timedOut: boolean;
@@ -118,11 +125,11 @@ export async function runReport(opts: ReportOptions): Promise<number> {
 
   if (timedOut) {
     console.error(`Coverage run timed out after ${timeoutMs / 1000}s.`);
-    return 1;
+    return { ok: false };
   }
   if (!ok) {
     console.error('Coverage run failed.');
-    return 1;
+    return { ok: false };
   }
 
   if (!existsSync(`${coverageDir}/coverage-final.json`)) {
@@ -132,27 +139,41 @@ export async function runReport(opts: ReportOptions): Promise<number> {
       `  Vitest: add coverage.reporter: ['json'] in vitest.config.ts\n` +
       `  Jest:   add "json" to coverageReporters in jest.config`,
     );
-    return 1;
+    return { ok: false };
   }
 
-  const filesData = parseCoverage(coverageDir);
-  const resolvedSrc = resolve(srcDir);
+  return { ok: true };
+}
 
-  const allEntries = filtered.flatMap(f => analyzeFile(f, filesData, resolvedSrc));
+function formatOutput(entries: CrapEntry[], opts: ReportOptions): void {
+  if (opts.output === 'json') {
+    console.log(formatJsonReport(entries));
+  } else if (opts.output === 'markdown') {
+    console.log(formatMarkdownReport(entries));
+  } else if (opts.output === 'csv') {
+    console.log(formatCsvReport(entries));
+  } else {
+    console.log(formatReport(entries));
+  }
+}
+
+export async function runReport(opts: ReportOptions): Promise<number> {
+  const files = findFiles(opts);
+  if (!files) return 1;
+
+  const covResult = executeCoverage(opts);
+  if (!covResult.ok) return 1;
+
+  const filesData = parseCoverage(opts.coverageDir);
+  const resolvedSrc = resolve(opts.srcDir);
+  const allEntries = files.flatMap(f => analyzeFile(f, filesData, resolvedSrc));
   if (allEntries.length === 0) {
     console.warn('No functions found. crap4ts analyzes top-level functions, arrow functions, and class methods.');
   }
+
   const sorted = sortByCrap(allEntries);
   const displayed = opts.top != null ? sorted.slice(0, opts.top) : sorted;
-  if (opts.output === 'json') {
-    console.log(formatJsonReport(displayed));
-  } else if (opts.output === 'markdown') {
-    console.log(formatMarkdownReport(displayed));
-  } else if (opts.output === 'csv') {
-    console.log(formatCsvReport(displayed));
-  } else {
-    console.log(formatReport(displayed));
-  }
+  formatOutput(displayed, opts);
 
   const failureMessage = evaluateThresholds(sorted, opts);
   if (failureMessage) {

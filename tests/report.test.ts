@@ -399,6 +399,76 @@ describe('runReport', () => {
     log.mockRestore();
   });
 
+  it('returns 0 and prints markdown report when output is markdown', async () => {
+    mkdirSync(join(cwd, 'src'));
+    writeFileSync(join(cwd, 'src', 'hello.ts'), 'export function hello() { return "hi"; }');
+
+    const coverageDir = join(cwd, 'coverage');
+    mockSpawnSync.mockImplementation(() => {
+      mkdirSync(coverageDir, { recursive: true });
+      const absPath = join(cwd, 'src', 'hello.ts');
+      const coverage = {
+        [absPath]: {
+          statementMap: {
+            '0': { start: { line: 1, column: 0 }, end: { line: 1, column: 40 } },
+          },
+          s: { '0': 1 },
+        },
+      };
+      writeFileSync(join(coverageDir, 'coverage-final.json'), JSON.stringify(coverage));
+      return {
+        status: 0, signal: null, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), pid: 1234,
+      } as any;
+    });
+
+    const logs: string[] = [];
+    const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+    writeFileSync(join(cwd, 'vitest.config.ts'), 'export default {}');
+
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'markdown' as const, excludes: [] });
+    expect(code).toBe(0);
+    const output = logs.join('\n');
+    expect(output).toContain('|');
+    expect(output).toContain('hello');
+
+    log.mockRestore();
+  });
+
+  it('returns 0 and prints CSV report when output is csv', async () => {
+    mkdirSync(join(cwd, 'src'));
+    writeFileSync(join(cwd, 'src', 'hello.ts'), 'export function hello() { return "hi"; }');
+
+    const coverageDir = join(cwd, 'coverage');
+    mockSpawnSync.mockImplementation(() => {
+      mkdirSync(coverageDir, { recursive: true });
+      const absPath = join(cwd, 'src', 'hello.ts');
+      const coverage = {
+        [absPath]: {
+          statementMap: {
+            '0': { start: { line: 1, column: 0 }, end: { line: 1, column: 40 } },
+          },
+          s: { '0': 1 },
+        },
+      };
+      writeFileSync(join(coverageDir, 'coverage-final.json'), JSON.stringify(coverage));
+      return {
+        status: 0, signal: null, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), pid: 1234,
+      } as any;
+    });
+
+    const logs: string[] = [];
+    const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+    writeFileSync(join(cwd, 'vitest.config.ts'), 'export default {}');
+
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'csv' as const, excludes: [] });
+    expect(code).toBe(0);
+    const output = logs.join('\n');
+    expect(output).toContain('hello');
+    expect(output).toContain(',');
+
+    log.mockRestore();
+  });
+
   it('returns 0 and prints JSON report when output is json', async () => {
     mkdirSync(join(cwd, 'src'));
     writeFileSync(join(cwd, 'src', 'hello.ts'), 'export function hello() { return "hi"; }');

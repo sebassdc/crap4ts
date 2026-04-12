@@ -97,4 +97,54 @@ describe('runSkillCommand dispatcher', () => {
     err.mockRestore();
     expect(code).not.toBe(0);
   });
+
+  it('returns non-zero when no subcommand given', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const code = await runSkillCommand([]);
+    err.mockRestore();
+    expect(code).not.toBe(0);
+  });
+});
+
+describe('runSkillCommand — install/uninstall', () => {
+  let cwd: string;
+  let originalCwd: string;
+  beforeEach(() => {
+    cwd = mkdtempSync(join(tmpdir(), 'crap4ts-skill-run-'));
+    originalCwd = process.cwd();
+    process.chdir(cwd);
+  });
+  afterEach(() => {
+    process.chdir(originalCwd);
+    rmSync(cwd, { recursive: true, force: true });
+  });
+
+  it('`install --project` installs and returns 0', async () => {
+    const logs: string[] = [];
+    const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+    const code = await runSkillCommand(['install', '--project']);
+    log.mockRestore();
+    expect(code).toBe(0);
+    expect(logs.some(l => l.includes('Installed'))).toBe(true);
+    expect(existsSync(join(cwd, '.agents/skills/crap4ts/SKILL.md'))).toBe(true);
+  });
+
+  it('`uninstall --project` removes installed skill and returns 0', async () => {
+    await runSkillCommand(['install', '--project']);
+    const logs: string[] = [];
+    const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+    const code = await runSkillCommand(['uninstall', '--project']);
+    log.mockRestore();
+    expect(code).toBe(0);
+    expect(logs.some(l => l.includes('Removed'))).toBe(true);
+  });
+
+  it('`uninstall --project` reports nothing to remove when not installed', async () => {
+    const logs: string[] = [];
+    const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+    const code = await runSkillCommand(['uninstall', '--project']);
+    log.mockRestore();
+    expect(code).toBe(0);
+    expect(logs.some(l => l.includes('No crap4ts skill installed'))).toBe(true);
+  });
 });

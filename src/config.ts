@@ -57,18 +57,30 @@ function parseConfigFile(filePath: string): Crap4tsConfig {
   return parsed as Crap4tsConfig;
 }
 
-export function mergeConfigIntoOptions(opts: CliOptions, config: Crap4tsConfig): CliOptions {
+function mergeNullableOptions(opts: CliOptions, config: Crap4tsConfig): Partial<CliOptions> {
   return {
-    ...opts,
-    srcDir: opts.srcDir !== 'src' ? opts.srcDir : (config.src ?? opts.srcDir),
-    excludes: opts.excludes.length > 0 ? opts.excludes : (config.exclude ?? []),
-    output: opts.output !== 'text' ? opts.output : (config.output ?? 'text'),
     runner: opts.runner ?? config.runner,
     coverageCommand: opts.coverageCommand ?? config.coverageCommand,
     failOnCrap: opts.failOnCrap ?? config.failOnCrap,
     failOnComplexity: opts.failOnComplexity ?? config.failOnComplexity,
     failOnCoverageBelow: opts.failOnCoverageBelow ?? config.failOnCoverageBelow,
     top: opts.top ?? config.top,
+  };
+}
+
+function mergeDefaultOptions(opts: CliOptions, config: Crap4tsConfig): Partial<CliOptions> {
+  return {
+    srcDir: opts.srcDir !== 'src' ? opts.srcDir : (config.src ?? opts.srcDir),
+    excludes: opts.excludes.length > 0 ? opts.excludes : (config.exclude ?? []),
+    output: opts.output !== 'text' ? opts.output : (config.output ?? 'text'),
     timeoutMs: opts.timeoutMs !== 600_000 ? opts.timeoutMs : ((config.timeout ?? 600) * 1000),
+  };
+}
+
+export function mergeConfigIntoOptions(opts: CliOptions, config: Crap4tsConfig): CliOptions {
+  return {
+    ...opts,
+    ...mergeDefaultOptions(opts, config),
+    ...mergeNullableOptions(opts, config),
   };
 }

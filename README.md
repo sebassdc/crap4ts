@@ -171,6 +171,48 @@ npx crap4ts skill uninstall --project
 The bundled skill lives inside the published package at `src/skill/SKILL.md`
 and is shipped via the `files` field in `package.json`.
 
+## Runner Configuration
+
+crap4ts supports three ways to run your test suite for coverage, applied in this order of precedence:
+
+### 1. `--coverage-command` (highest priority)
+
+Run an arbitrary shell command instead of the built-in runner logic. The command is executed with `shell: true`, so pipes, environment variables, and shell syntax all work.
+
+```bash
+# Monorepo: run tests only for a specific package
+npx crap4ts --coverage-command "npm run test:api -- --coverage"
+
+# Custom script with environment variables
+npx crap4ts --coverage-command "CI=1 yarn test --coverage --coverageReporters=json"
+
+# Turborepo / Nx workspace
+npx crap4ts --coverage-command "npx turbo run test -- --coverage"
+```
+
+The command must produce a `coverage/coverage-final.json` file in Istanbul JSON format.
+
+### 2. `--runner vitest|jest` (skip auto-detection)
+
+Use the built-in runner invocation for Vitest or Jest, but skip the config-file heuristic:
+
+```bash
+# Force Jest even if a vitest.config.ts exists
+npx crap4ts --runner jest
+
+# Force Vitest in a project without a vitest.config file
+npx crap4ts --runner vitest
+```
+
+### 3. Auto-detection (default)
+
+When neither flag is provided, crap4ts detects the runner automatically:
+
+1. If any `vitest.config.*` file exists, use Vitest.
+2. If any `jest.config.*` file exists, use Jest.
+3. If `package.json` lists `jest` as a dependency, use Jest.
+4. Otherwise, default to Vitest.
+
 ## Troubleshooting
 
 | Error | Fix |

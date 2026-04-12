@@ -15,98 +15,146 @@ export interface CliOptions {
   configPath?: string;
 }
 
+interface ParseState {
+  filters: string[];
+  excludes: string[];
+  srcDir: string;
+  timeoutMs: number;
+  output: 'text' | 'json' | 'markdown' | 'csv';
+  runner?: 'vitest' | 'jest';
+  coverageCommand?: string;
+  failOnCrap?: number;
+  failOnComplexity?: number;
+  failOnCoverageBelow?: number;
+  top?: number;
+  configPath?: string;
+}
+
+type FlagHandler = (argv: string[], i: number, state: ParseState) => number;
+
+function parseOutputFormat(v: string | undefined): CliOptions['output'] {
+  const valid = ['text', 'json', 'markdown', 'csv'];
+  if (!v || !valid.includes(v)) {
+    throw new Error(`--output must be one of: ${valid.join(', ')}. Got: ${v}`);
+  }
+  return v as CliOptions['output'];
+}
+
+function parseRunnerValue(v: string | undefined): 'vitest' | 'jest' {
+  if (!v) throw new Error('--runner requires an argument');
+  if (v !== 'vitest' && v !== 'jest') {
+    throw new Error(`--runner must be 'vitest' or 'jest', got: ${v}`);
+  }
+  return v;
+}
+
+function parsePositiveNum(v: string | undefined, flag: string): number {
+  const n = Number(v);
+  if (!v || !Number.isFinite(n) || n <= 0) {
+    throw new Error(`${flag} requires a positive number, got: ${v}`);
+  }
+  return n;
+}
+
+function parsePositiveInt(v: string | undefined, flag: string): number {
+  const n = Number(v);
+  if (!v || !Number.isFinite(n) || n <= 0 || !Number.isInteger(n)) {
+    throw new Error(`${flag} requires a positive integer, got: ${v}`);
+  }
+  return n;
+}
+
+function parseRange(v: string | undefined, flag: string, min: number, max: number): number {
+  const n = Number(v);
+  if (!v || !Number.isFinite(n) || n < min || n > max) {
+    throw new Error(`${flag} requires a number between ${min} and ${max}, got: ${v}`);
+  }
+  return n;
+}
+
+const FLAG_HANDLERS: Record<string, FlagHandler> = {
+  '--json'(_argv, i, state) {
+    state.output = 'json';
+    return i;
+  },
+  '--output'(argv, i, state) {
+    state.output = parseOutputFormat(argv[i + 1]);
+    return i + 1;
+  },
+  '--src'(argv, i, state) {
+    const v = argv[i + 1];
+    if (!v) throw new Error('--src requires a directory argument');
+    state.srcDir = v;
+    return i + 1;
+  },
+  '--timeout'(argv, i, state) {
+    state.timeoutMs = parsePositiveNum(argv[i + 1], '--timeout') * 1000;
+    return i + 1;
+  },
+  '--runner'(argv, i, state) {
+    state.runner = parseRunnerValue(argv[i + 1]);
+    return i + 1;
+  },
+  '--coverage-command'(argv, i, state) {
+    const v = argv[i + 1];
+    if (!v) throw new Error('--coverage-command requires an argument');
+    state.coverageCommand = v;
+    return i + 1;
+  },
+  '--exclude'(argv, i, state) {
+    const v = argv[i + 1];
+    if (!v) throw new Error('--exclude requires a pattern argument');
+    state.excludes.push(v);
+    return i + 1;
+  },
+  '--fail-on-crap'(argv, i, state) {
+    state.failOnCrap = parsePositiveNum(argv[i + 1], '--fail-on-crap');
+    return i + 1;
+  },
+  '--fail-on-complexity'(argv, i, state) {
+    state.failOnComplexity = parsePositiveNum(argv[i + 1], '--fail-on-complexity');
+    return i + 1;
+  },
+  '--fail-on-coverage-below'(argv, i, state) {
+    state.failOnCoverageBelow = parseRange(argv[i + 1], '--fail-on-coverage-below', 0, 100);
+    return i + 1;
+  },
+  '--top'(argv, i, state) {
+    state.top = parsePositiveInt(argv[i + 1], '--top');
+    return i + 1;
+  },
+  '--config'(argv, i, state) {
+    const v = argv[i + 1];
+    if (!v) throw new Error('--config requires a file path argument');
+    state.configPath = v;
+    return i + 1;
+  },
+};
+
+const EARLY_EXIT_DEFAULTS: Omit<CliOptions, 'mode'> = {
+  filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000, output: 'text' as const, excludes: [],
+};
+
 export function parseOptions(argv: string[]): CliOptions {
-  const filters: string[] = [];
-  const excludes: string[] = [];
-  let srcDir = 'src';
-  const coverageDir = 'coverage';
-  let timeoutMs = 600_000;
-  let output: 'text' | 'json' | 'markdown' | 'csv' = 'text';
-  let runner: 'vitest' | 'jest' | undefined;
-  let coverageCommand: string | undefined;
-  let failOnCrap: number | undefined;
-  let failOnComplexity: number | undefined;
-  let failOnCoverageBelow: number | undefined;
-  let top: number | undefined;
-  let configPath: string | undefined;
+  const state: ParseState = {
+    filters: [], excludes: [], srcDir: 'src', timeoutMs: 600_000, output: 'text',
+  };
 
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--help' || a === '-h') {
-      return { mode: 'help', filters: [], srcDir, coverageDir, timeoutMs, output: 'text' as const, excludes: [] };
-    } else if (a === '--version' || a === '-v') {
-      return { mode: 'version', filters: [], srcDir, coverageDir, timeoutMs, output: 'text' as const, excludes: [] };
-    } else if (a === '--json') {
-      output = 'json';
-    } else if (a === '--output') {
-      const v = argv[++i];
-      const valid = ['text', 'json', 'markdown', 'csv'];
-      if (!v || !valid.includes(v)) {
-        throw new Error(`--output must be one of: ${valid.join(', ')}. Got: ${v}`);
-      }
-      output = v as 'text' | 'json' | 'markdown' | 'csv';
-    } else if (a === '--src') {
-      const v = argv[++i];
-      if (!v) throw new Error('--src requires a directory argument');
-      srcDir = v;
-    } else if (a === '--timeout') {
-      const v = argv[++i];
-      const n = Number(v);
-      if (!v || !Number.isFinite(n) || n <= 0) {
-        throw new Error(`--timeout requires a positive number of seconds, got: ${v}`);
-      }
-      timeoutMs = n * 1000;
-    } else if (a === '--runner') {
-      const v = argv[++i];
-      if (!v) throw new Error('--runner requires an argument');
-      if (v !== 'vitest' && v !== 'jest') {
-        throw new Error(`--runner must be 'vitest' or 'jest', got: ${v}`);
-      }
-      runner = v;
-    } else if (a === '--coverage-command') {
-      const v = argv[++i];
-      if (!v) throw new Error('--coverage-command requires an argument');
-      coverageCommand = v;
-    } else if (a === '--exclude') {
-      const v = argv[++i];
-      if (!v) throw new Error('--exclude requires a pattern argument');
-      excludes.push(v);
-    } else if (a === '--fail-on-crap') {
-      const v = argv[++i];
-      const n = Number(v);
-      if (!v || !Number.isFinite(n) || n <= 0) {
-        throw new Error(`--fail-on-crap requires a positive number, got: ${v}`);
-      }
-      failOnCrap = n;
-    } else if (a === '--fail-on-complexity') {
-      const v = argv[++i];
-      const n = Number(v);
-      if (!v || !Number.isFinite(n) || n <= 0) {
-        throw new Error(`--fail-on-complexity requires a positive number, got: ${v}`);
-      }
-      failOnComplexity = n;
-    } else if (a === '--fail-on-coverage-below') {
-      const v = argv[++i];
-      const n = Number(v);
-      if (!v || !Number.isFinite(n) || n < 0 || n > 100) {
-        throw new Error(`--fail-on-coverage-below requires a number between 0 and 100, got: ${v}`);
-      }
-      failOnCoverageBelow = n;
-    } else if (a === '--top') {
-      const v = argv[++i];
-      const n = Number(v);
-      if (!v || !Number.isFinite(n) || n <= 0 || !Number.isInteger(n)) {
-        throw new Error(`--top requires a positive integer, got: ${v}`);
-      }
-      top = n;
-    } else if (a === '--config') {
-      const v = argv[++i];
-      if (!v) throw new Error('--config requires a file path argument');
-      configPath = v;
+      return { mode: 'help', ...EARLY_EXIT_DEFAULTS };
+    }
+    if (a === '--version' || a === '-v') {
+      return { mode: 'version', ...EARLY_EXIT_DEFAULTS };
+    }
+    const handler = FLAG_HANDLERS[a];
+    if (handler) {
+      i = handler(argv, i, state);
     } else {
-      filters.push(a);
+      state.filters.push(a);
     }
   }
 
-  return { mode: 'report', filters, srcDir, coverageDir, timeoutMs, output, excludes, runner, coverageCommand, failOnCrap, failOnComplexity, failOnCoverageBelow, top, configPath };
+  return { mode: 'report', ...state, coverageDir: 'coverage' };
 }

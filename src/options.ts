@@ -5,12 +5,14 @@ export interface CliOptions {
   coverageDir: string;
   timeoutMs: number;
   output: 'text' | 'json';
+  excludes: string[];
   runner?: 'vitest' | 'jest';
   coverageCommand?: string;
 }
 
 export function parseOptions(argv: string[]): CliOptions {
   const filters: string[] = [];
+  const excludes: string[] = [];
   let srcDir = 'src';
   const coverageDir = 'coverage';
   let timeoutMs = 600_000;
@@ -21,9 +23,9 @@ export function parseOptions(argv: string[]): CliOptions {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--help' || a === '-h') {
-      return { mode: 'help', filters: [], srcDir, coverageDir, timeoutMs, output: 'text' as const };
+      return { mode: 'help', filters: [], srcDir, coverageDir, timeoutMs, output: 'text' as const, excludes: [] };
     } else if (a === '--version' || a === '-v') {
-      return { mode: 'version', filters: [], srcDir, coverageDir, timeoutMs, output: 'text' as const };
+      return { mode: 'version', filters: [], srcDir, coverageDir, timeoutMs, output: 'text' as const, excludes: [] };
     } else if (a === '--json') {
       output = 'json';
     } else if (a === '--src') {
@@ -48,10 +50,14 @@ export function parseOptions(argv: string[]): CliOptions {
       const v = argv[++i];
       if (!v) throw new Error('--coverage-command requires an argument');
       coverageCommand = v;
+    } else if (a === '--exclude') {
+      const v = argv[++i];
+      if (!v) throw new Error('--exclude requires a pattern argument');
+      excludes.push(v);
     } else {
       filters.push(a);
     }
   }
 
-  return { mode: 'report', filters, srcDir, coverageDir, timeoutMs, output, runner, coverageCommand };
+  return { mode: 'report', filters, srcDir, coverageDir, timeoutMs, output, excludes, runner, coverageCommand };
 }

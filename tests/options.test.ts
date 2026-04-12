@@ -4,7 +4,7 @@ import { parseOptions } from '../src/options';
 describe('parseOptions', () => {
   it('returns defaults when given no args', () => {
     expect(parseOptions([])).toEqual({
-      mode: 'report', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000, output: 'text',
+      mode: 'report', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000, output: 'text', excludes: [],
     });
   });
 
@@ -23,31 +23,31 @@ describe('parseOptions', () => {
 
   it('returns mode: help for --help', () => {
     expect(parseOptions(['--help'])).toEqual({
-      mode: 'help', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000, output: 'text',
+      mode: 'help', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000, output: 'text', excludes: [],
     });
   });
 
   it('returns mode: help for -h', () => {
     expect(parseOptions(['-h'])).toEqual({
-      mode: 'help', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000, output: 'text',
+      mode: 'help', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000, output: 'text', excludes: [],
     });
   });
 
   it('returns mode: version for --version', () => {
     expect(parseOptions(['--version'])).toEqual({
-      mode: 'version', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000, output: 'text',
+      mode: 'version', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000, output: 'text', excludes: [],
     });
   });
 
   it('returns mode: version for -v', () => {
     expect(parseOptions(['-v'])).toEqual({
-      mode: 'version', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000, output: 'text',
+      mode: 'version', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000, output: 'text', excludes: [],
     });
   });
 
   it('parses --json flag and sets output to json', () => {
     expect(parseOptions(['--json'])).toEqual({
-      mode: 'report', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000, output: 'json',
+      mode: 'report', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000, output: 'json', excludes: [],
     });
   });
 
@@ -82,5 +82,24 @@ describe('parseOptions', () => {
     const o = parseOptions([]);
     expect(o.runner).toBeUndefined();
     expect(o.coverageCommand).toBeUndefined();
+  });
+
+  it('parses --exclude into excludes array', () => {
+    const o = parseOptions(['--exclude', 'dist']);
+    expect(o.excludes).toEqual(['dist']);
+  });
+
+  it('accumulates multiple --exclude flags', () => {
+    const o = parseOptions(['--exclude', 'dist', '--exclude', 'fixtures', '--exclude', '__generated__']);
+    expect(o.excludes).toEqual(['dist', 'fixtures', '__generated__']);
+  });
+
+  it('defaults excludes to empty array', () => {
+    const o = parseOptions([]);
+    expect(o.excludes).toEqual([]);
+  });
+
+  it('throws for --exclude without argument', () => {
+    expect(() => parseOptions(['--exclude'])).toThrow('--exclude requires a pattern argument');
   });
 });

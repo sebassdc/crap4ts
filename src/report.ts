@@ -11,6 +11,7 @@ export interface ReportOptions {
   coverageDir: string;
   timeoutMs: number;
   output: 'text' | 'json';
+  excludes: string[];
   runner?: 'vitest' | 'jest';
   coverageCommand?: string;
 }
@@ -53,7 +54,11 @@ export async function runReport(opts: ReportOptions): Promise<number> {
     return 1;
   }
 
-  const allFiles = findSourceFiles(srcDir);
+  const rawFiles = findSourceFiles(srcDir);
+  const excludes = opts.excludes ?? [];
+  const allFiles = excludes.length > 0
+    ? rawFiles.filter(f => !excludes.some(ex => f.includes(ex)))
+    : rawFiles;
   if (allFiles.length === 0) {
     console.error(`No TypeScript files found in '${srcDir}'. Verify your source directory contains .ts files.`);
     return 1;

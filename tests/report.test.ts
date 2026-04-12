@@ -362,6 +362,43 @@ describe('runReport', () => {
     err.mockRestore();
   });
 
+  it('filters files with excludes option', async () => {
+    mkdirSync(join(cwd, 'src'));
+    mkdirSync(join(cwd, 'src', 'dist'));
+    writeFileSync(join(cwd, 'src', 'hello.ts'), 'export function hello() { return "hi"; }');
+    writeFileSync(join(cwd, 'src', 'dist', 'compiled.ts'), 'export function compiled() { return 1; }');
+
+    const coverageDir = join(cwd, 'coverage');
+    mockSpawnSync.mockImplementation(() => {
+      mkdirSync(coverageDir, { recursive: true });
+      const absPath = join(cwd, 'src', 'hello.ts');
+      const coverage = {
+        [absPath]: {
+          statementMap: {
+            '0': { start: { line: 1, column: 0 }, end: { line: 1, column: 40 } },
+          },
+          s: { '0': 1 },
+        },
+      };
+      writeFileSync(join(coverageDir, 'coverage-final.json'), JSON.stringify(coverage));
+      return {
+        status: 0, signal: null, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), pid: 1234,
+      } as any;
+    });
+
+    const logs: string[] = [];
+    const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+    writeFileSync(join(cwd, 'vitest.config.ts'), 'export default {}');
+
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text', excludes: ['dist'] });
+    expect(code).toBe(0);
+    const output = logs.join('\n');
+    expect(output).toContain('hello');
+    expect(output).not.toContain('compiled');
+
+    log.mockRestore();
+  });
+
   it('returns 0 and prints JSON report when output is json', async () => {
     mkdirSync(join(cwd, 'src'));
     writeFileSync(join(cwd, 'src', 'hello.ts'), 'export function hello() { return "hi"; }');

@@ -13,6 +13,7 @@ function formatHelp(): string {
 
 Options:
   --src <dir>              Source directory to analyze (default: src)
+  --exclude <pattern>      Exclude files whose path contains <pattern> (repeatable)
   --timeout <seconds>      Analysis timeout in seconds (default: 600)
   --json                   Output report as JSON instead of text
   --runner <vitest|jest>   Skip auto-detection, use specified test runner

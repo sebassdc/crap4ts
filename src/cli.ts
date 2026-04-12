@@ -14,6 +14,7 @@ function formatHelp(): string {
 Options:
   --src <dir>         Source directory to analyze (default: src)
   --timeout <seconds> Analysis timeout in seconds (default: 600)
+  --json              Output report as JSON instead of text
   --help, -h          Show this help message
   --version, -v       Show version number
 

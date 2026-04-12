@@ -1,4 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 import {
   extractFunctions,
   parseCoverage,
@@ -11,8 +14,9 @@ import {
   findSourceFiles,
   filterSources,
   analyzeFile,
+  generateReport,
 } from '../src/api';
-import type { CrapEntry, FunctionInfo, CoverageData, FileCoverageData } from '../src/api';
+import type { CrapEntry, FunctionInfo, CoverageData, FileCoverageData, ReportResult, GenerateReportOptions } from '../src/api';
 
 describe('api surface', () => {
   it('exports extractFunctions as a function', () => {
@@ -87,5 +91,137 @@ describe('api surface', () => {
 
     const covData: CoverageData = {};
     expect(covData).toBeDefined();
+  });
+
+  it('exports generateReport as a function', () => {
+    expect(typeof generateReport).toBe('function');
+  });
+});
+
+describe('generateReport', () => {
+  let tmpDir: string;
+  let srcDir: string;
+  let coverageDir: string;
+
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'crap4ts-api-test-'));
+    srcDir = join(tmpDir, 'src');
+    coverageDir = join(tmpDir, 'coverage');
+    mkdirSync(srcDir, { recursive: true });
+    mkdirSync(coverageDir, { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  function writeSrcFile(name: string, content: string): string {
+    const filePath = join(srcDir, name);
+    writeFileSync(filePath, content);
+    return filePath;
+  }
+
+  function writeCoverage(data: Record<string, unknown>): void {
+    writeFileSync(join(coverageDir, 'coverage-final.json'), JSON.stringify(data));
+  }
+
+  it('returns entries with correct fields for a simple file', () => {
+    const filePath = writeSrcFile('hello.ts', [
+      'export function greet(name: string): string {',
+      '  return "hello " + name;',
+      '}',
+    ].join('\n'));
+
+    // Coverage that covers all statements in the function
+    writeCoverage({
+      [filePath]: {
+        statementMap: {
+          '0': { start: { line: 2, column: 2 }, end: { line: 2, column: 28 } },
+        },
+        s: { '0': 1 },
+      },
+    });
+
+    const result = generateReport({ srcDir, coverageDir });
+
+    expect(result.entries).toHaveLength(1);
+    const entry = result.entries[0];
+    expect(entry.name).toBe('greet');
+    expect(entry.complexity).toBe(1);
+    expect(entry.coverage).toBe(100);
+    expect(entry.crap).toBeCloseTo(1.0);
+    expect(entry.module).toBe('hello');
+  });
+
+  it('returns entries sorted by CRAP descending', () => {
+    const filePath = writeSrcFile('multi.ts', [
+      'export function simple() { return 1; }',
+      'export function complex(a: boolean, b: boolean) {',
+      '  if (a) {',
+      '    if (b) {',
+      '      return 1;',
+      '    }',
+      '    return 2;',
+      '  }',
+      '  return 3;',
+      '}',
+    ].join('\n'));
+
+    // No coverage at all for the complex function
+    writeCoverage({
+      [filePath]: {
+        statementMap: {
+          '0': { start: { line: 1, column: 27 }, end: { line: 1, column: 36 } },
+        },
+        s: { '0': 1 },
+      },
+    });
+
+    const result = generateReport({ srcDir, coverageDir });
+
+    expect(result.entries.length).toBe(2);
+    // complex should have higher CRAP (uncovered + complex), so it comes first
+    expect(result.entries[0].name).toBe('complex');
+    expect(result.entries[1].name).toBe('simple');
+  });
+
+  it('applies filters to restrict which files are analyzed', () => {
+    writeSrcFile('foo.ts', 'export function foo() { return 1; }');
+    writeSrcFile('bar.ts', 'export function bar() { return 2; }');
+    writeCoverage({});
+
+    const result = generateReport({ srcDir, coverageDir, filters: ['foo'] });
+
+    expect(result.entries).toHaveLength(1);
+    expect(result.entries[0].name).toBe('foo');
+  });
+
+  it('applies excludes to skip files', () => {
+    writeSrcFile('keep.ts', 'export function keep() { return 1; }');
+    const subDir = join(srcDir, 'generated');
+    mkdirSync(subDir, { recursive: true });
+    writeFileSync(join(subDir, 'skip.ts'), 'export function skip() { return 2; }');
+    writeCoverage({});
+
+    const result = generateReport({ srcDir, coverageDir, excludes: ['generated'] });
+
+    expect(result.entries).toHaveLength(1);
+    expect(result.entries[0].name).toBe('keep');
+  });
+
+  it('throws if coverage directory does not exist', () => {
+    writeSrcFile('hello.ts', 'export function greet() {}');
+
+    expect(() =>
+      generateReport({ srcDir, coverageDir: join(tmpDir, 'nonexistent') }),
+    ).toThrow(/Coverage directory not found/);
+  });
+
+  it('ReportResult and GenerateReportOptions types are importable', () => {
+    const opts: GenerateReportOptions = { srcDir: '.', coverageDir: '.' };
+    expect(opts).toBeDefined();
+
+    const result: ReportResult = { entries: [] };
+    expect(result.entries).toEqual([]);
   });
 });

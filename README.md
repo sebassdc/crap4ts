@@ -62,6 +62,56 @@ npx crap4ts --exclude dist      # exclude paths containing "dist"
 npx crap4ts --timeout 120       # set analysis timeout to 120 seconds
 ```
 
+## Configuration File
+
+Instead of passing flags every time, create a `crap4ts.config.json` (or `.crap4tsrc.json`) in your project root:
+
+```json
+{
+  "src": "lib",
+  "exclude": ["dist", "fixtures"],
+  "output": "json",
+  "failOnCrap": 30,
+  "timeout": 120
+}
+```
+
+### File Discovery
+
+crap4ts looks for config files in the current working directory in this order:
+
+1. `crap4ts.config.json` (preferred)
+2. `.crap4tsrc.json` (fallback)
+
+The first file found is used. If neither exists, all options use their defaults.
+
+To load a config file from a custom path, use the `--config` flag:
+
+```bash
+npx crap4ts --config configs/crap4ts.json
+```
+
+### CLI Override Precedence
+
+CLI flags always take precedence over config file values. For example, if your config file sets `"src": "lib"` but you run `npx crap4ts --src app`, the `app` directory is used.
+
+### Supported Keys
+
+| Key                  | Type       | Description                                      | Default |
+|----------------------|------------|--------------------------------------------------|---------|
+| `src`                | `string`   | Source directory to analyze                       | `"src"` |
+| `exclude`            | `string[]` | Exclude paths containing these patterns           | `[]`    |
+| `output`             | `string`   | Output format: `"text"` or `"json"`              | `"text"`|
+| `runner`             | `string`   | Test runner: `"vitest"` or `"jest"`              | auto    |
+| `coverageCommand`    | `string`   | Custom shell command to generate coverage         | none    |
+| `failOnCrap`         | `number`   | Fail if any CRAP score >= this value             | none    |
+| `failOnComplexity`   | `number`   | Fail if any cyclomatic complexity >= this value  | none    |
+| `failOnCoverageBelow`| `number`   | Fail if any function coverage < this % (0-100)   | none    |
+| `top`                | `number`   | Show only the top N entries                       | all     |
+| `timeout`            | `number`   | Analysis timeout in seconds                       | `600`   |
+
+Unknown keys are silently ignored, so config files are forward-compatible with future versions.
+
 ## CI Integration
 
 Use threshold flags to fail CI when code quality drops below acceptable levels:

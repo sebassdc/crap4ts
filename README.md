@@ -299,6 +299,18 @@ Decision points that increase cyclomatic complexity:
 
 Nested functions and class bodies are skipped — only the enclosing function's body is analyzed.
 
+## Compatibility
+
+| Layout | Status | Notes |
+|--------|--------|-------|
+| Standard (`src/`) | Supported | Default, no config needed |
+| Custom source dir | Supported | Use `--src <dir>` |
+| Monorepo workspace | Supported | Point `--src` to package source |
+| Multiple src dirs | Supported | Use `--exclude` to filter |
+| Windows paths | Supported | Normalized internally |
+| Istanbul JSON coverage | Required | Other formats not supported |
+| Branch coverage | Not used | Statement coverage only |
+
 ## Limitations
 
 - Only TypeScript (`.ts`) files are analyzed — `.tsx`, `.js`, and `.jsx` files are ignored.

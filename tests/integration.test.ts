@@ -319,4 +319,82 @@ describe('integration: CLI output contract tests', () => {
 
     log.mockRestore();
   });
+
+  it('text report contains table headers (Function, Module, CC, Cov%, CRAP)', async () => {
+    process.chdir(VITEST_FIXTURE);
+    mockSpawnWithCoverage(VITEST_FIXTURE, VITEST_COVERAGE());
+
+    const logs: string[] = [];
+    const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await runCli([]);
+    const output = logs.join('\n');
+    expect(output).toContain('Function');
+    expect(output).toContain('Module');
+    expect(output).toContain('CC');
+    expect(output).toContain('Cov%');
+    expect(output).toContain('CRAP');
+
+    log.mockRestore();
+    warn.mockRestore();
+  });
+
+  it('JSON entries contain all required fields with correct types', async () => {
+    process.chdir(VITEST_FIXTURE);
+    mockSpawnWithCoverage(VITEST_FIXTURE, VITEST_COVERAGE());
+
+    const logs: string[] = [];
+    const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await runCli(['--json']);
+    const parsed = JSON.parse(logs.join('\n'));
+    for (const entry of parsed.entries) {
+      expect(typeof entry.name).toBe('string');
+      expect(typeof entry.module).toBe('string');
+      expect(typeof entry.complexity).toBe('number');
+      expect(typeof entry.coverage).toBe('number');
+      expect(typeof entry.crap).toBe('number');
+      expect(entry.coverage).toBeGreaterThanOrEqual(0);
+      expect(entry.coverage).toBeLessThanOrEqual(100);
+      expect(entry.complexity).toBeGreaterThanOrEqual(1);
+    }
+
+    log.mockRestore();
+    warn.mockRestore();
+  });
+
+  it('--runner jest overrides auto-detection in CLI', async () => {
+    process.chdir(VITEST_FIXTURE);
+    mockSpawnWithCoverage(VITEST_FIXTURE, VITEST_COVERAGE());
+
+    const logs: string[] = [];
+    const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await runCli(['--runner', 'jest']);
+    // Even though vitest.config.ts exists, --runner jest should invoke jest
+    expect(mockSpawnSync).toHaveBeenCalledWith(
+      'npx',
+      ['jest', '--coverage', '--coverageReporters=json'],
+      expect.anything(),
+    );
+
+    log.mockRestore();
+    warn.mockRestore();
+  });
+
+  it('invalid option returns exit code 2 with error message', async () => {
+    process.chdir(VITEST_FIXTURE);
+
+    const errs: string[] = [];
+    const err = vi.spyOn(console, 'error').mockImplementation((m: unknown) => { errs.push(String(m)); });
+
+    const code = await runCli(['--runner', 'mocha']);
+    expect(code).toBe(2);
+    expect(errs.join('\n')).toContain('vitest');
+
+    err.mockRestore();
+  });
 });

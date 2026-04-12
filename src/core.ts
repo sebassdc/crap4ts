@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, resolve } from 'path';
 import { extractFunctions } from './complexity';
-import { CoverageData, coverageForRange, sourceToModule } from './coverage';
+import { CoverageData, coverageForRange, normalizePath, sourceToModule } from './coverage';
 import { CrapEntry, crapScore } from './crap';
 
 export interface SourceScanOptions {
@@ -59,7 +59,7 @@ export function analyzeFile(filePath: string, filesData: CoverageData, srcDir: s
   try {
     const source = readFileSync(filePath, 'utf-8');
     const fns = extractFunctions(source, filePath);
-    const absolutePath = resolve(filePath);
+    const absolutePath = normalizePath(resolve(filePath));
     const module = sourceToModule(absolutePath, srcDir);
 
     const fileData = filesData[absolutePath] ?? { statementMap: {}, s: {} };

@@ -5,7 +5,7 @@
 export { extractFunctions } from './complexity';
 export type { FunctionInfo } from './complexity';
 
-export { parseCoverage, coverageForRange, sourceToModule } from './coverage';
+export { parseCoverage, coverageForRange, sourceToModule, normalizePath } from './coverage';
 export type { CoverageData, FileCoverageData } from './coverage';
 
 export { crapScore, sortByCrap, formatReport, formatJsonReport, formatMarkdownReport, formatCsvReport } from './crap';

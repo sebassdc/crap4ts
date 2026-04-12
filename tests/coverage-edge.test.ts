@@ -124,3 +124,41 @@ describe('coverageForRange — overlap attribution', () => {
     expect(result).toBeCloseTo(66.67, 1); // 2 of 3 covered
   });
 });
+
+describe('coverageForRange — regression edge cases', () => {
+  // Multi-line statement (lines 5-8) overlapping function (lines 6-10)
+  it('counts multi-line statement partially overlapping function start', () => {
+    const data = makeRangeData([
+      { startLine: 5, endLine: 8, hits: 1 },   // overlaps fn start
+      { startLine: 7, endLine: 9, hits: 0 },   // fully inside
+    ]);
+    // Function: lines 6-10 → both statements overlap → 1/2 covered = 50%
+    expect(coverageForRange(data, 6, 10)).toBe(50);
+  });
+
+  // Single-line function with one covering statement
+  it('handles single-line function with one statement', () => {
+    const data = makeRangeData([{ startLine: 5, endLine: 5, hits: 1 }]);
+    expect(coverageForRange(data, 5, 5)).toBe(100);
+  });
+
+  // Function with all statements hit → 100%
+  it('returns 100 when all statements in function are hit', () => {
+    const data = makeRangeData([
+      { startLine: 1, endLine: 2, hits: 3 },
+      { startLine: 3, endLine: 4, hits: 1 },
+      { startLine: 5, endLine: 6, hits: 7 },
+    ]);
+    expect(coverageForRange(data, 1, 6)).toBe(100);
+  });
+
+  // Function with no statements hit → 0%
+  it('returns 0 when no statements in function are hit', () => {
+    const data = makeRangeData([
+      { startLine: 1, endLine: 2, hits: 0 },
+      { startLine: 3, endLine: 4, hits: 0 },
+      { startLine: 5, endLine: 6, hits: 0 },
+    ]);
+    expect(coverageForRange(data, 1, 6)).toBe(0);
+  });
+});

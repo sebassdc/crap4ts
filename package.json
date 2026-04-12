@@ -2,7 +2,12 @@
   "name": "crap4ts",
   "version": "0.1.0",
   "description": "CRAP metric CLI for TypeScript: combines cyclomatic complexity and test coverage to find risky code, with a bundled cross-agent AI skill.",
-  "main": "dist/index.js",
+  "main": "dist/api.js",
+  "types": "dist/api.d.ts",
+  "exports": {
+    ".": "./dist/api.js",
+    "./cli": "./dist/index.js"
+  },
   "bin": {
     "crap4ts": "./dist/index.js"
   },

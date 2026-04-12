@@ -5,7 +5,7 @@ import type { CliOptions } from './options';
 export interface Crap4tsConfig {
   src?: string;
   exclude?: string[];
-  output?: 'text' | 'json';
+  output?: 'text' | 'json' | 'markdown' | 'csv';
   runner?: 'vitest' | 'jest';
   coverageCommand?: string;
   failOnCrap?: number;

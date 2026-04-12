@@ -55,6 +55,29 @@ describe('parseOptions', () => {
     expect(parseOptions([])).toHaveProperty('output', 'text');
   });
 
+  it('parses --output markdown', () => {
+    const o = parseOptions(['--output', 'markdown']);
+    expect(o.output).toBe('markdown');
+  });
+
+  it('parses --output csv', () => {
+    const o = parseOptions(['--output', 'csv']);
+    expect(o.output).toBe('csv');
+  });
+
+  it('parses --output json', () => {
+    const o = parseOptions(['--output', 'json']);
+    expect(o.output).toBe('json');
+  });
+
+  it('throws for --output with invalid format', () => {
+    expect(() => parseOptions(['--output', 'xml'])).toThrow(/--output must be one of/);
+  });
+
+  it('throws for --output without argument', () => {
+    expect(() => parseOptions(['--output'])).toThrow(/--output must be one of/);
+  });
+
   it('parses --runner vitest', () => {
     const o = parseOptions(['--runner', 'vitest']);
     expect(o.runner).toBe('vitest');

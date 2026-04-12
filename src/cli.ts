@@ -16,7 +16,8 @@ Options:
   --src <dir>              Source directory to analyze (default: src)
   --exclude <pattern>      Exclude files whose path contains <pattern> (repeatable)
   --timeout <seconds>      Analysis timeout in seconds (default: 600)
-  --json                   Output report as JSON instead of text
+  --output <format>        Output format: text, json, markdown, csv (default: text)
+  --json                   Shorthand for --output json
   --runner <vitest|jest>   Skip auto-detection, use specified test runner
   --coverage-command <cmd> Run a custom shell command for coverage instead
   --fail-on-crap <n>       Exit 1 if any function CRAP score >= n

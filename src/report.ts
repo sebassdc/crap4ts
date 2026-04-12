@@ -3,14 +3,14 @@ import { resolve } from 'path';
 import { spawnSync } from 'child_process';
 import { analyzeFile, filterSources, findSourceFiles } from './core';
 import { parseCoverage } from './coverage';
-import { CrapEntry, formatJsonReport, formatReport, sortByCrap } from './crap';
+import { CrapEntry, formatCsvReport, formatJsonReport, formatMarkdownReport, formatReport, sortByCrap } from './crap';
 
 export interface ReportOptions {
   filters: string[];
   srcDir: string;
   coverageDir: string;
   timeoutMs: number;
-  output: 'text' | 'json';
+  output: 'text' | 'json' | 'markdown' | 'csv';
   excludes: string[];
   runner?: 'vitest' | 'jest';
   coverageCommand?: string;
@@ -146,6 +146,10 @@ export async function runReport(opts: ReportOptions): Promise<number> {
   const displayed = opts.top != null ? sorted.slice(0, opts.top) : sorted;
   if (opts.output === 'json') {
     console.log(formatJsonReport(displayed));
+  } else if (opts.output === 'markdown') {
+    console.log(formatMarkdownReport(displayed));
+  } else if (opts.output === 'csv') {
+    console.log(formatCsvReport(displayed));
   } else {
     console.log(formatReport(displayed));
   }

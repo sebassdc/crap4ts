@@ -101,7 +101,7 @@ CLI flags always take precedence over config file values. For example, if your c
 |----------------------|------------|--------------------------------------------------|---------|
 | `src`                | `string`   | Source directory to analyze                       | `"src"` |
 | `exclude`            | `string[]` | Exclude paths containing these patterns           | `[]`    |
-| `output`             | `string`   | Output format: `"text"` or `"json"`              | `"text"`|
+| `output`             | `string`   | Output format: `"text"`, `"json"`, `"markdown"`, or `"csv"` | `"text"`|
 | `runner`             | `string`   | Test runner: `"vitest"` or `"jest"`              | auto    |
 | `coverageCommand`    | `string`   | Custom shell command to generate coverage         | none    |
 | `failOnCrap`         | `number`   | Fail if any CRAP score >= this value             | none    |
@@ -153,6 +153,8 @@ import {
   sortByCrap,          // sort CrapEntry[] by CRAP descending
   formatReport,        // render text table from CrapEntry[]
   formatJsonReport,    // render JSON string from CrapEntry[]
+  formatMarkdownReport, // render markdown table from CrapEntry[]
+  formatCsvReport,     // render CSV string from CrapEntry[]
   findSourceFiles,     // find all .ts files in a directory
   filterSources,       // filter file list by substring patterns
   analyzeFile,         // analyze a single file against coverage data
@@ -185,15 +187,29 @@ The `--top` flag limits displayed entries but all entries are evaluated against 
 | 1    | Threshold violated or runtime error |
 | 2    | Usage error (invalid flags or arguments) |
 
-## JSON Output
+## Output Formats
 
-Use `--json` to get machine-readable output for CI pipelines and automation:
+crap4ts supports four output formats:
 
 ```bash
-npx crap4ts --json > crap-report.json
+npx crap4ts                      # default text table
+npx crap4ts --json               # JSON (shorthand for --output json)
+npx crap4ts --output markdown    # Markdown table
+npx crap4ts --output csv         # CSV
 ```
 
-The JSON structure:
+### Text (default)
+
+```
+CRAP Report
+===========
+Function                       Module                              CC   Cov%     CRAP
+-------------------------------------------------------------------------------------
+complexFn                      my.module                          12  45.0%    130.2
+simpleFn                       my.module                           1 100.0%      1.0
+```
+
+### JSON
 
 ```json
 {
@@ -210,7 +226,26 @@ The JSON structure:
 }
 ```
 
-Text output remains the default. Pass `--json` explicitly to switch formats.
+### Markdown
+
+```markdown
+# CRAP Report
+
+| Function | Module | CC | Cov% | CRAP |
+|---|---|---:|---:|---:|
+| complexFn | my.module | 12 | 45.0% | 130.2 |
+| simpleFn | my.module | 1 | 100.0% | 1.0 |
+```
+
+### CSV
+
+```csv
+Function,Module,CC,Coverage,CRAP
+complexFn,my.module,12,45.0,130.2
+simpleFn,my.module,1,100.0,1.0
+```
+
+Text output is the default. Use `--json` as a shorthand or `--output <format>` for any format.
 
 ## Excluding Paths
 

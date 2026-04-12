@@ -20,6 +20,25 @@ export function formatJsonReport(entries: CrapEntry[]): string {
   return JSON.stringify({ tool: 'crap4ts', entries }, null, 2);
 }
 
+export function formatCsvReport(entries: CrapEntry[]): string {
+  const header = 'Function,Module,CC,Coverage,CRAP';
+  const rows = entries.map(e => {
+    const name = e.name.includes(',') ? `"${e.name}"` : e.name;
+    const mod = e.module.includes(',') ? `"${e.module}"` : e.module;
+    return `${name},${mod},${e.complexity},${e.coverage.toFixed(1)},${e.crap.toFixed(1)}`;
+  });
+  return [header, ...rows, ''].join('\n');
+}
+
+export function formatMarkdownReport(entries: CrapEntry[]): string {
+  const header = '| Function | Module | CC | Cov% | CRAP |';
+  const sep = '|---|---|---:|---:|---:|';
+  const rows = entries.map(e =>
+    `| ${e.name} | ${e.module} | ${e.complexity} | ${e.coverage.toFixed(1)}% | ${e.crap.toFixed(1)} |`
+  );
+  return ['# CRAP Report', '', header, sep, ...rows, ''].join('\n');
+}
+
 export function formatReport(entries: CrapEntry[]): string {
   const header =
     `${'Function'.padEnd(30)} ${'Module'.padEnd(35)} ${'CC'.padStart(4)} ${'Cov%'.padStart(6)} ${'CRAP'.padStart(8)}`;

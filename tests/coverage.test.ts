@@ -90,4 +90,43 @@ describe('sourceToModule', () => {
   it('handles trailing slash on srcDir', () => {
     expect(sourceToModule('/project/src/foo.ts', '/project/src/')).toBe('foo');
   });
+
+  it('handles Windows-style paths with backslashes', () => {
+    expect(sourceToModule('C:\\Users\\dev\\project\\src\\foo.ts', 'C:\\Users\\dev\\project\\src')).toBe('foo');
+  });
+
+  it('handles Windows-style nested paths', () => {
+    expect(sourceToModule('C:\\Users\\dev\\project\\src\\utils\\helpers.ts', 'C:\\Users\\dev\\project\\src')).toBe('utils.helpers');
+  });
+
+  it('handles Windows-style paths with .tsx extension', () => {
+    expect(sourceToModule('C:\\Users\\dev\\project\\src\\components\\Button.tsx', 'C:\\Users\\dev\\project\\src')).toBe('components.Button');
+  });
+
+  it('handles Windows-style srcDir with trailing backslash', () => {
+    expect(sourceToModule('C:\\Users\\dev\\project\\src\\foo.ts', 'C:\\Users\\dev\\project\\src\\')).toBe('foo');
+  });
+
+  it('handles deeply nested package paths', () => {
+    expect(sourceToModule('/project/src/a/b/c/d/e.ts', '/project/src')).toBe('a.b.c.d.e');
+  });
+
+  it('handles mixed forward and back slashes', () => {
+    expect(sourceToModule('C:\\Users\\dev/project/src\\foo/bar.ts', 'C:\\Users\\dev/project/src')).toBe('foo.bar');
+  });
+
+  it('handles .js extension', () => {
+    expect(sourceToModule('/project/src/index.js', '/project/src')).toBe('index');
+  });
+
+  it('handles .jsx extension', () => {
+    expect(sourceToModule('/project/src/App.jsx', '/project/src')).toBe('App');
+  });
+
+  it('returns full dotted path when srcDir does not match', () => {
+    // When the file is not under srcDir, the full normalized path is used
+    const result = sourceToModule('/other/path/foo.ts', '/project/src');
+    expect(result).toContain('foo');
+    expect(result).not.toContain('.ts');
+  });
 });

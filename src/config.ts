@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import type { CliOptions } from './options';
 
 export interface Crap4tsConfig {
   src?: string;
@@ -54,4 +55,20 @@ function parseConfigFile(filePath: string): Crap4tsConfig {
   }
 
   return parsed as Crap4tsConfig;
+}
+
+export function mergeConfigIntoOptions(opts: CliOptions, config: Crap4tsConfig): CliOptions {
+  return {
+    ...opts,
+    srcDir: opts.srcDir !== 'src' ? opts.srcDir : (config.src ?? opts.srcDir),
+    excludes: opts.excludes.length > 0 ? opts.excludes : (config.exclude ?? []),
+    output: opts.output !== 'text' ? opts.output : (config.output ?? 'text'),
+    runner: opts.runner ?? config.runner,
+    coverageCommand: opts.coverageCommand ?? config.coverageCommand,
+    failOnCrap: opts.failOnCrap ?? config.failOnCrap,
+    failOnComplexity: opts.failOnComplexity ?? config.failOnComplexity,
+    failOnCoverageBelow: opts.failOnCoverageBelow ?? config.failOnCoverageBelow,
+    top: opts.top ?? config.top,
+    timeoutMs: opts.timeoutMs !== 600_000 ? opts.timeoutMs : ((config.timeout ?? 600) * 1000),
+  };
 }

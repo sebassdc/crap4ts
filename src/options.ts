@@ -12,6 +12,7 @@ export interface CliOptions {
   failOnComplexity?: number;
   failOnCoverageBelow?: number;
   top?: number;
+  configPath?: string;
 }
 
 export function parseOptions(argv: string[]): CliOptions {
@@ -27,6 +28,7 @@ export function parseOptions(argv: string[]): CliOptions {
   let failOnComplexity: number | undefined;
   let failOnCoverageBelow: number | undefined;
   let top: number | undefined;
+  let configPath: string | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -90,10 +92,14 @@ export function parseOptions(argv: string[]): CliOptions {
         throw new Error(`--top requires a positive integer, got: ${v}`);
       }
       top = n;
+    } else if (a === '--config') {
+      const v = argv[++i];
+      if (!v) throw new Error('--config requires a file path argument');
+      configPath = v;
     } else {
       filters.push(a);
     }
   }
 
-  return { mode: 'report', filters, srcDir, coverageDir, timeoutMs, output, excludes, runner, coverageCommand, failOnCrap, failOnComplexity, failOnCoverageBelow, top };
+  return { mode: 'report', filters, srcDir, coverageDir, timeoutMs, output, excludes, runner, coverageCommand, failOnCrap, failOnComplexity, failOnCoverageBelow, top, configPath };
 }

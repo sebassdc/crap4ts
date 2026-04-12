@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { crapScore, sortByCrap, formatReport, formatJsonReport, CrapEntry } from '../src/crap';
+import { crapScore, sortByCrap, formatReport, formatJsonReport, formatMarkdownReport, CrapEntry } from '../src/crap';
 
 describe('crapScore', () => {
   it('fully covered code scores exactly CC', () => {
@@ -90,6 +90,33 @@ describe('formatReport', () => {
 
   it('ends with a trailing newline', () => {
     expect(formatReport([])).toMatch(/\n$/);
+  });
+});
+
+describe('formatMarkdownReport', () => {
+  it('produces valid markdown table with header and separator', () => {
+    const out = formatMarkdownReport([]);
+    expect(out).toContain('# CRAP Report');
+    expect(out).toContain('| Function | Module | CC | Cov% | CRAP |');
+    expect(out).toContain('|---|---|---:|---:|---:|');
+  });
+
+  it('has correct column alignment markers (right-align for numbers)', () => {
+    const out = formatMarkdownReport([]);
+    const sep = '|---|---|---:|---:|---:|';
+    expect(out).toContain(sep);
+  });
+
+  it('includes entry data in table rows', () => {
+    const entries: CrapEntry[] = [
+      { name: 'myFunc', module: 'my.module', complexity: 5, coverage: 45.0, crap: 18.6 },
+    ];
+    const out = formatMarkdownReport(entries);
+    expect(out).toContain('| myFunc | my.module | 5 | 45.0% | 18.6 |');
+  });
+
+  it('ends with a trailing newline', () => {
+    expect(formatMarkdownReport([])).toMatch(/\n$/);
   });
 });
 

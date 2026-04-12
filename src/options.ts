@@ -4,7 +4,7 @@ export interface CliOptions {
   srcDir: string;
   coverageDir: string;
   timeoutMs: number;
-  output: 'text' | 'json';
+  output: 'text' | 'json' | 'markdown' | 'csv';
   excludes: string[];
   runner?: 'vitest' | 'jest';
   coverageCommand?: string;
@@ -21,7 +21,7 @@ export function parseOptions(argv: string[]): CliOptions {
   let srcDir = 'src';
   const coverageDir = 'coverage';
   let timeoutMs = 600_000;
-  let output: 'text' | 'json' = 'text';
+  let output: 'text' | 'json' | 'markdown' | 'csv' = 'text';
   let runner: 'vitest' | 'jest' | undefined;
   let coverageCommand: string | undefined;
   let failOnCrap: number | undefined;
@@ -38,6 +38,13 @@ export function parseOptions(argv: string[]): CliOptions {
       return { mode: 'version', filters: [], srcDir, coverageDir, timeoutMs, output: 'text' as const, excludes: [] };
     } else if (a === '--json') {
       output = 'json';
+    } else if (a === '--output') {
+      const v = argv[++i];
+      const valid = ['text', 'json', 'markdown', 'csv'];
+      if (!v || !valid.includes(v)) {
+        throw new Error(`--output must be one of: ${valid.join(', ')}. Got: ${v}`);
+      }
+      output = v as 'text' | 'json' | 'markdown' | 'csv';
     } else if (a === '--src') {
       const v = argv[++i];
       if (!v) throw new Error('--src requires a directory argument');

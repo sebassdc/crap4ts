@@ -8,7 +8,7 @@ export type { FunctionInfo } from './complexity';
 export { parseCoverage, coverageForRange, sourceToModule } from './coverage';
 export type { CoverageData, FileCoverageData } from './coverage';
 
-export { crapScore, sortByCrap, formatReport, formatJsonReport } from './crap';
+export { crapScore, sortByCrap, formatReport, formatJsonReport, formatMarkdownReport } from './crap';
 export type { CrapEntry } from './crap';
 
 export { findSourceFiles, filterSources, analyzeFile } from './core';

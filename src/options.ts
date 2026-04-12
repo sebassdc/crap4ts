@@ -5,6 +5,8 @@ export interface CliOptions {
   coverageDir: string;
   timeoutMs: number;
   output: 'text' | 'json';
+  runner?: 'vitest' | 'jest';
+  coverageCommand?: string;
 }
 
 export function parseOptions(argv: string[]): CliOptions {
@@ -13,6 +15,8 @@ export function parseOptions(argv: string[]): CliOptions {
   const coverageDir = 'coverage';
   let timeoutMs = 600_000;
   let output: 'text' | 'json' = 'text';
+  let runner: 'vitest' | 'jest' | undefined;
+  let coverageCommand: string | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -33,10 +37,21 @@ export function parseOptions(argv: string[]): CliOptions {
         throw new Error(`--timeout requires a positive number of seconds, got: ${v}`);
       }
       timeoutMs = n * 1000;
+    } else if (a === '--runner') {
+      const v = argv[++i];
+      if (!v) throw new Error('--runner requires an argument');
+      if (v !== 'vitest' && v !== 'jest') {
+        throw new Error(`--runner must be 'vitest' or 'jest', got: ${v}`);
+      }
+      runner = v;
+    } else if (a === '--coverage-command') {
+      const v = argv[++i];
+      if (!v) throw new Error('--coverage-command requires an argument');
+      coverageCommand = v;
     } else {
       filters.push(a);
     }
   }
 
-  return { mode: 'report', filters, srcDir, coverageDir, timeoutMs, output };
+  return { mode: 'report', filters, srcDir, coverageDir, timeoutMs, output, runner, coverageCommand };
 }

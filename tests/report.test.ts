@@ -308,6 +308,60 @@ describe('runReport', () => {
     log.mockRestore();
   });
 
+  it('uses runner override instead of detectRunner when runner option is set', async () => {
+    createSrcWithFile();
+    // No vitest.config.ts — detectRunner would default to vitest, but we override to jest
+    mockSpawnSync.mockReturnValue({
+      status: 1, signal: null, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), pid: 1234,
+    });
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text', runner: 'jest' });
+    expect(mockSpawnSync).toHaveBeenCalledWith('npx', ['jest', '--coverage', '--coverageReporters=json'], expect.anything());
+
+    err.mockRestore();
+  });
+
+  it('uses coverageCommand with shell mode when set', async () => {
+    createSrcWithFile();
+    mockSpawnSync.mockReturnValue({
+      status: 1, signal: null, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), pid: 1234,
+    });
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text', coverageCommand: 'custom cmd' });
+    expect(mockSpawnSync).toHaveBeenCalledWith('custom cmd', [], expect.objectContaining({ shell: true, stdio: 'inherit', timeout: 60000 }));
+
+    err.mockRestore();
+  });
+
+  it('coverageCommand takes precedence over runner option', async () => {
+    createSrcWithFile();
+    mockSpawnSync.mockReturnValue({
+      status: 1, signal: null, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), pid: 1234,
+    });
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text', runner: 'jest', coverageCommand: 'my-custom-cmd' });
+    expect(mockSpawnSync).toHaveBeenCalledWith('my-custom-cmd', [], expect.objectContaining({ shell: true }));
+
+    err.mockRestore();
+  });
+
+  it('uses detectRunner when no overrides are set', async () => {
+    createSrcWithFile();
+    writeFileSync(join(cwd, 'jest.config.ts'), 'export default {}');
+    mockSpawnSync.mockReturnValue({
+      status: 1, signal: null, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), pid: 1234,
+    });
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text' });
+    expect(mockSpawnSync).toHaveBeenCalledWith('npx', ['jest', '--coverage', '--coverageReporters=json'], expect.anything());
+
+    err.mockRestore();
+  });
+
   it('returns 0 and prints JSON report when output is json', async () => {
     mkdirSync(join(cwd, 'src'));
     writeFileSync(join(cwd, 'src', 'hello.ts'), 'export function hello() { return "hi"; }');

@@ -12,11 +12,13 @@ function formatHelp(): string {
   return `Usage: crap4ts [options] [filters...]
 
 Options:
-  --src <dir>         Source directory to analyze (default: src)
-  --timeout <seconds> Analysis timeout in seconds (default: 600)
-  --json              Output report as JSON instead of text
-  --help, -h          Show this help message
-  --version, -v       Show version number
+  --src <dir>              Source directory to analyze (default: src)
+  --timeout <seconds>      Analysis timeout in seconds (default: 600)
+  --json                   Output report as JSON instead of text
+  --runner <vitest|jest>   Skip auto-detection, use specified test runner
+  --coverage-command <cmd> Run a custom shell command for coverage instead
+  --help, -h               Show this help message
+  --version, -v            Show version number
 
 Subcommands:
   skill               Manage the bundled AI skill (install | uninstall | show | path)`;

@@ -224,6 +224,7 @@ Nested functions and class bodies are skipped — only the enclosing function's 
 - Nested functions are attributed to their enclosing function rather than being extracted as separate symbols.
 - Dynamic or computed method names (e.g., `[Symbol.iterator]()` or `["methodName"]()`) are not extracted.
 - Only statement coverage is used when computing the coverage fraction — branch and function coverage are ignored.
+- Coverage is calculated using statement-to-function overlap: a statement is attributed to a function if its line range overlaps the function's line range. This is an approximation; a multi-line statement that spans a function boundary may be counted for both the enclosing and the adjacent function.
 
 For advanced usage patterns, see [docs/advanced-usage.md](docs/advanced-usage.md).
 

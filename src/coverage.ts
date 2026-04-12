@@ -18,10 +18,36 @@ export interface FileCoverageData {
 
 export type CoverageData = Record<string, FileCoverageData>;
 
+function assertValidCoverage(data: unknown): asserts data is CoverageData {
+  if (!data || typeof data !== 'object') {
+    throw new Error('coverage-final.json is not an object');
+  }
+  for (const [key, entry] of Object.entries(data as Record<string, unknown>)) {
+    if (!entry || typeof entry !== 'object') {
+      throw new Error(`coverage-final.json entry ${key} is not an object`);
+    }
+    const e = entry as Record<string, unknown>;
+    if (!e.statementMap || typeof e.statementMap !== 'object') {
+      throw new Error(`coverage-final.json entry ${key} missing statementMap`);
+    }
+    if (!e.s || typeof e.s !== 'object') {
+      throw new Error(`coverage-final.json entry ${key} missing s`);
+    }
+  }
+}
+
 export function parseCoverage(coverageDir: string): CoverageData {
   const jsonPath = join(coverageDir, 'coverage-final.json');
   const content = readFileSync(jsonPath, 'utf-8');
-  return JSON.parse(content) as CoverageData;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`coverage-final.json is not valid JSON: ${message}`);
+  }
+  assertValidCoverage(parsed);
+  return parsed;
 }
 
 export function coverageForRange(
@@ -40,7 +66,7 @@ export function coverageForRange(
     }
   }
 
-  if (total === 0) return 0.0;
+  if (total === 0) return 100.0;
   return (covered / total) * 100;
 }
 

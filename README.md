@@ -95,6 +95,34 @@ Nested functions and class bodies are skipped — only the enclosing function's 
 - Top-level `const f = () => {}` and `const f = function() {}`
 - Class `constructor`, methods, getters, and setters (named as `ClassName.methodName`)
 
+## Cross-Agent Skill
+
+crap4ts ships a bundled `SKILL.md` that you can install into the cross-agent
+skill directory consumed by Claude Code, Codex, Pi, and any harness that reads
+`.agents/skills/`.
+
+```bash
+# Global install for the current user (~/.agents/skills/crap4ts/SKILL.md)
+npx crap4ts skill install
+
+# Project-local install (./.agents/skills/crap4ts/SKILL.md)
+npx crap4ts skill install --project
+
+# Print the bundled skill
+npx crap4ts skill show
+
+# Print where the skill is (or would be) installed
+npx crap4ts skill path
+npx crap4ts skill path --project
+
+# Remove
+npx crap4ts skill uninstall
+npx crap4ts skill uninstall --project
+```
+
+The bundled skill lives inside the published package at `src/skill/SKILL.md`
+and is shipped via the `files` field in `package.json`.
+
 ## Development
 
 ```bash

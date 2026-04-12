@@ -1,15 +1,27 @@
 {
   "name": "crap4ts",
   "version": "0.1.0",
-  "description": "CRAP metric for TypeScript projects",
+  "description": "CRAP metric CLI for TypeScript: combines cyclomatic complexity and test coverage to find risky code, with a bundled cross-agent AI skill.",
   "main": "dist/index.js",
   "bin": {
     "crap4ts": "./dist/index.js"
   },
+  "files": ["dist", "src/skill/SKILL.md", "README.md", "LICENSE"],
+  "engines": { "node": ">=18" },
+  "license": "MIT",
+  "keywords": [
+    "typescript", "cli", "testing", "coverage",
+    "cyclomatic-complexity", "code-quality", "static-analysis",
+    "metrics", "crap", "ai-agent", "skill"
+  ],
+  "repository": { "type": "git", "url": "https://github.com/sebassdc/crap4ts.git" },
+  "bugs": { "url": "https://github.com/sebassdc/crap4ts/issues" },
+  "homepage": "https://github.com/sebassdc/crap4ts#readme",
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "typescript": "^5.0.0"

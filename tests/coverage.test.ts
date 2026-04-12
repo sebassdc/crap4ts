@@ -43,9 +43,9 @@ describe('coverageForRange', () => {
     expect(coverageForRange(data, 1, 2)).toBe(50);
   });
 
-  it('returns 0 when no statements in range', () => {
+  it('returns 100 when no statements in range (uninstrumented)', () => {
     const data = makeFileData([{ line: 10, hits: 5 }]);
-    expect(coverageForRange(data, 1, 3)).toBe(0);
+    expect(coverageForRange(data, 1, 3)).toBe(100);
   });
 
   it('only counts statements whose start line is in range', () => {
@@ -58,7 +58,7 @@ describe('coverageForRange', () => {
 
   it('handles empty statementMap', () => {
     const data: FileCoverageData = { statementMap: {}, s: {} };
-    expect(coverageForRange(data, 1, 10)).toBe(0);
+    expect(coverageForRange(data, 1, 10)).toBe(100);
   });
 
   it('includes start and end lines in range', () => {

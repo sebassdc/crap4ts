@@ -54,4 +54,33 @@ describe('parseOptions', () => {
   it('default output is text', () => {
     expect(parseOptions([])).toHaveProperty('output', 'text');
   });
+
+  it('parses --runner vitest', () => {
+    const o = parseOptions(['--runner', 'vitest']);
+    expect(o.runner).toBe('vitest');
+  });
+
+  it('parses --runner jest', () => {
+    const o = parseOptions(['--runner', 'jest']);
+    expect(o.runner).toBe('jest');
+  });
+
+  it('throws for --runner with invalid value', () => {
+    expect(() => parseOptions(['--runner', 'invalid'])).toThrow("--runner must be 'vitest' or 'jest', got: invalid");
+  });
+
+  it('throws for --runner without argument', () => {
+    expect(() => parseOptions(['--runner'])).toThrow('--runner requires an argument');
+  });
+
+  it('parses --coverage-command', () => {
+    const o = parseOptions(['--coverage-command', 'npm test -- --coverage']);
+    expect(o.coverageCommand).toBe('npm test -- --coverage');
+  });
+
+  it('defaults runner and coverageCommand to undefined', () => {
+    const o = parseOptions([]);
+    expect(o.runner).toBeUndefined();
+    expect(o.coverageCommand).toBeUndefined();
+  });
 });

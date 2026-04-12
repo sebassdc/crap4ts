@@ -8,6 +8,10 @@ export interface CliOptions {
   excludes: string[];
   runner?: 'vitest' | 'jest';
   coverageCommand?: string;
+  failOnCrap?: number;
+  failOnComplexity?: number;
+  failOnCoverageBelow?: number;
+  top?: number;
 }
 
 export function parseOptions(argv: string[]): CliOptions {
@@ -19,6 +23,10 @@ export function parseOptions(argv: string[]): CliOptions {
   let output: 'text' | 'json' = 'text';
   let runner: 'vitest' | 'jest' | undefined;
   let coverageCommand: string | undefined;
+  let failOnCrap: number | undefined;
+  let failOnComplexity: number | undefined;
+  let failOnCoverageBelow: number | undefined;
+  let top: number | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -54,10 +62,38 @@ export function parseOptions(argv: string[]): CliOptions {
       const v = argv[++i];
       if (!v) throw new Error('--exclude requires a pattern argument');
       excludes.push(v);
+    } else if (a === '--fail-on-crap') {
+      const v = argv[++i];
+      const n = Number(v);
+      if (!v || !Number.isFinite(n) || n <= 0) {
+        throw new Error(`--fail-on-crap requires a positive number, got: ${v}`);
+      }
+      failOnCrap = n;
+    } else if (a === '--fail-on-complexity') {
+      const v = argv[++i];
+      const n = Number(v);
+      if (!v || !Number.isFinite(n) || n <= 0) {
+        throw new Error(`--fail-on-complexity requires a positive number, got: ${v}`);
+      }
+      failOnComplexity = n;
+    } else if (a === '--fail-on-coverage-below') {
+      const v = argv[++i];
+      const n = Number(v);
+      if (!v || !Number.isFinite(n) || n < 0 || n > 100) {
+        throw new Error(`--fail-on-coverage-below requires a number between 0 and 100, got: ${v}`);
+      }
+      failOnCoverageBelow = n;
+    } else if (a === '--top') {
+      const v = argv[++i];
+      const n = Number(v);
+      if (!v || !Number.isFinite(n) || n <= 0 || !Number.isInteger(n)) {
+        throw new Error(`--top requires a positive integer, got: ${v}`);
+      }
+      top = n;
     } else {
       filters.push(a);
     }
   }
 
-  return { mode: 'report', filters, srcDir, coverageDir, timeoutMs, output, excludes, runner, coverageCommand };
+  return { mode: 'report', filters, srcDir, coverageDir, timeoutMs, output, excludes, runner, coverageCommand, failOnCrap, failOnComplexity, failOnCoverageBelow, top };
 }

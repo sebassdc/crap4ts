@@ -102,4 +102,77 @@ describe('parseOptions', () => {
   it('throws for --exclude without argument', () => {
     expect(() => parseOptions(['--exclude'])).toThrow('--exclude requires a pattern argument');
   });
+
+  // Threshold flags
+  it('parses --fail-on-crap', () => {
+    const o = parseOptions(['--fail-on-crap', '30']);
+    expect(o.failOnCrap).toBe(30);
+  });
+
+  it('parses --fail-on-complexity', () => {
+    const o = parseOptions(['--fail-on-complexity', '10']);
+    expect(o.failOnComplexity).toBe(10);
+  });
+
+  it('parses --fail-on-coverage-below', () => {
+    const o = parseOptions(['--fail-on-coverage-below', '80']);
+    expect(o.failOnCoverageBelow).toBe(80);
+  });
+
+  it('parses --top', () => {
+    const o = parseOptions(['--top', '20']);
+    expect(o.top).toBe(20);
+  });
+
+  it('defaults threshold options to undefined', () => {
+    const o = parseOptions([]);
+    expect(o.failOnCrap).toBeUndefined();
+    expect(o.failOnComplexity).toBeUndefined();
+    expect(o.failOnCoverageBelow).toBeUndefined();
+    expect(o.top).toBeUndefined();
+  });
+
+  it('throws for --fail-on-crap with non-numeric value', () => {
+    expect(() => parseOptions(['--fail-on-crap', 'abc'])).toThrow(/--fail-on-crap requires a positive number/);
+  });
+
+  it('throws for --fail-on-crap with negative value', () => {
+    expect(() => parseOptions(['--fail-on-crap', '-5'])).toThrow(/--fail-on-crap requires a positive number/);
+  });
+
+  it('throws for --fail-on-crap without argument', () => {
+    expect(() => parseOptions(['--fail-on-crap'])).toThrow(/--fail-on-crap requires a positive number/);
+  });
+
+  it('throws for --fail-on-complexity with invalid value', () => {
+    expect(() => parseOptions(['--fail-on-complexity', 'xyz'])).toThrow(/--fail-on-complexity requires a positive number/);
+  });
+
+  it('throws for --fail-on-complexity without argument', () => {
+    expect(() => parseOptions(['--fail-on-complexity'])).toThrow(/--fail-on-complexity requires a positive number/);
+  });
+
+  it('throws for --fail-on-coverage-below with value over 100', () => {
+    expect(() => parseOptions(['--fail-on-coverage-below', '150'])).toThrow(/--fail-on-coverage-below requires a number between 0 and 100/);
+  });
+
+  it('throws for --fail-on-coverage-below with negative value', () => {
+    expect(() => parseOptions(['--fail-on-coverage-below', '-10'])).toThrow(/--fail-on-coverage-below requires a number between 0 and 100/);
+  });
+
+  it('throws for --fail-on-coverage-below without argument', () => {
+    expect(() => parseOptions(['--fail-on-coverage-below'])).toThrow(/--fail-on-coverage-below requires a number between 0 and 100/);
+  });
+
+  it('throws for --top with non-integer value', () => {
+    expect(() => parseOptions(['--top', '2.5'])).toThrow(/--top requires a positive integer/);
+  });
+
+  it('throws for --top with negative value', () => {
+    expect(() => parseOptions(['--top', '-1'])).toThrow(/--top requires a positive integer/);
+  });
+
+  it('throws for --top without argument', () => {
+    expect(() => parseOptions(['--top'])).toThrow(/--top requires a positive integer/);
+  });
 });

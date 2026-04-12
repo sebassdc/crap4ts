@@ -17,4 +17,38 @@ describe('runCli', () => {
     err.mockRestore();
     expect(code).not.toBe(0);
   });
+
+  it('returns 0 for --help', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const code = await runCli(['--help']);
+    log.mockRestore();
+    expect(code).toBe(0);
+  });
+
+  it('help output contains usage, options, and skill subcommand hint', async () => {
+    const logs: string[] = [];
+    const log = vi.spyOn(console, 'log').mockImplementation(m => { logs.push(String(m)); });
+    await runCli(['--help']);
+    log.mockRestore();
+    const output = logs.join('\n');
+    expect(output).toContain('Usage');
+    expect(output).toContain('Options');
+    expect(output).toContain('skill');
+  });
+
+  it('returns 0 for --version', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const code = await runCli(['--version']);
+    log.mockRestore();
+    expect(code).toBe(0);
+  });
+
+  it('version output matches package.json version', async () => {
+    const logs: string[] = [];
+    const log = vi.spyOn(console, 'log').mockImplementation(m => { logs.push(String(m)); });
+    await runCli(['--version']);
+    log.mockRestore();
+    const output = logs.join('\n');
+    expect(output).toContain('0.1.0');
+  });
 });

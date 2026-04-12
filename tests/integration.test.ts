@@ -17,6 +17,8 @@ const FIXTURES = resolve(__dirname, 'fixtures');
 const VITEST_FIXTURE = join(FIXTURES, 'vitest-basic');
 const JEST_FIXTURE = join(FIXTURES, 'jest-basic');
 const MISSING_FIXTURE = join(FIXTURES, 'missing-coverage');
+const WORKSPACE_FIXTURE = join(FIXTURES, 'workspace-basic');
+const WORKSPACE_CORE = join(WORKSPACE_FIXTURE, 'packages', 'core');
 
 function buildCoverageJson(fixtureDir: string, files: Record<string, { statements: Array<{ startLine: number; endLine: number; hits: number }> }>): string {
   const coverage: Record<string, any> = {};
@@ -396,5 +398,163 @@ describe('integration: CLI output contract tests', () => {
     expect(errs.join('\n')).toContain('vitest');
 
     err.mockRestore();
+  });
+});
+
+const WORKSPACE_COVERAGE = () => buildCoverageJson(WORKSPACE_CORE, {
+  'index.ts': {
+    statements: [
+      { startLine: 1, endLine: 8, hits: 4 },
+      { startLine: 2, endLine: 4, hits: 4 },
+      { startLine: 3, endLine: 3, hits: 2 },
+      { startLine: 5, endLine: 7, hits: 4 },
+      { startLine: 6, endLine: 6, hits: 1 },
+      { startLine: 7, endLine: 7, hits: 3 },
+      { startLine: 10, endLine: 17, hits: 3 },
+      { startLine: 11, endLine: 13, hits: 3 },
+      { startLine: 12, endLine: 12, hits: 1 },
+      { startLine: 13, endLine: 15, hits: 2 },
+      { startLine: 14, endLine: 14, hits: 1 },
+      { startLine: 16, endLine: 16, hits: 1 },
+    ],
+  },
+});
+
+describe('integration: workspace/monorepo fixture', () => {
+  let originalCwd: string;
+
+  beforeEach(() => {
+    originalCwd = process.cwd();
+    mockSpawnSync.mockReset();
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+  });
+
+  describe('running from workspace package dir', () => {
+    beforeEach(() => {
+      process.chdir(WORKSPACE_CORE);
+    });
+
+    it('detects vitest runner from package vitest.config.ts', () => {
+      expect(detectRunner()).toBe('vitest');
+    });
+
+    it('finds and analyzes TypeScript files with srcDir: src', async () => {
+      mockSpawnWithCoverage(WORKSPACE_CORE, WORKSPACE_COVERAGE());
+
+      const logs: string[] = [];
+      const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const code = await runReport({
+        filters: [],
+        srcDir: 'src',
+        coverageDir: 'coverage',
+        timeoutMs: 60000,
+        output: 'text',
+        excludes: [],
+      });
+
+      expect(code).toBe(0);
+      const output = logs.join('\n');
+      expect(output).toContain('CRAP Report');
+      expect(output).toContain('validate');
+      expect(output).toContain('transform');
+
+      log.mockRestore();
+      warn.mockRestore();
+    });
+
+    it('module names are relative to srcDir (no packages/core prefix)', async () => {
+      mockSpawnWithCoverage(WORKSPACE_CORE, WORKSPACE_COVERAGE());
+
+      const logs: string[] = [];
+      const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const code = await runReport({
+        filters: [],
+        srcDir: 'src',
+        coverageDir: 'coverage',
+        timeoutMs: 60000,
+        output: 'json',
+        excludes: [],
+      });
+
+      expect(code).toBe(0);
+      const parsed = JSON.parse(logs.join('\n'));
+      const modules = parsed.entries.map((e: any) => e.module);
+      // Module should be 'index', not 'packages.core.src.index'
+      expect(modules).toContain('index');
+      expect(modules.every((m: string) => !m.includes('packages'))).toBe(true);
+
+      log.mockRestore();
+      warn.mockRestore();
+    });
+  });
+
+  describe('running from workspace root with --src packages/core/src', () => {
+    beforeEach(() => {
+      process.chdir(WORKSPACE_FIXTURE);
+    });
+
+    it('analyzes package source from workspace root', async () => {
+      // Build coverage with paths relative to workspace root
+      const coverageJson = (() => {
+        const absPath = resolve(WORKSPACE_FIXTURE, 'packages/core/src/index.ts');
+        const statementMap: Record<string, any> = {};
+        const s: Record<string, number> = {};
+        const stmts = [
+          { startLine: 1, endLine: 8, hits: 4 },
+          { startLine: 2, endLine: 4, hits: 4 },
+          { startLine: 10, endLine: 17, hits: 3 },
+          { startLine: 11, endLine: 13, hits: 3 },
+        ];
+        stmts.forEach((stmt, i) => {
+          statementMap[String(i)] = {
+            start: { line: stmt.startLine, column: 0 },
+            end: { line: stmt.endLine, column: 100 },
+          };
+          s[String(i)] = stmt.hits;
+        });
+        return JSON.stringify({ [absPath]: { statementMap, s } });
+      })();
+
+      mockSpawnSync.mockImplementation(() => {
+        const coverageDir = join(WORKSPACE_FIXTURE, 'coverage');
+        mkdirSync(coverageDir, { recursive: true });
+        writeFileSync(join(coverageDir, 'coverage-final.json'), coverageJson);
+        return {
+          status: 0, signal: null, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), pid: 1234,
+        } as any;
+      });
+
+      const logs: string[] = [];
+      const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const code = await runReport({
+        filters: [],
+        srcDir: 'packages/core/src',
+        coverageDir: 'coverage',
+        timeoutMs: 60000,
+        output: 'json',
+        excludes: [],
+      });
+
+      expect(code).toBe(0);
+      const parsed = JSON.parse(logs.join('\n'));
+      const names = parsed.entries.map((e: any) => e.name);
+      expect(names).toContain('validate');
+      expect(names).toContain('transform');
+      // Module should be relative to packages/core/src
+      const modules = parsed.entries.map((e: any) => e.module);
+      expect(modules).toContain('index');
+
+      log.mockRestore();
+      warn.mockRestore();
+    });
   });
 });

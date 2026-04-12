@@ -18,6 +18,11 @@ export interface FileCoverageData {
 
 export type CoverageData = Record<string, FileCoverageData>;
 
+/** Normalize a file path to always use forward slashes. */
+export function normalizePath(p: string): string {
+  return p.replace(/\\/g, '/');
+}
+
 function assertValidCoverage(data: unknown): asserts data is CoverageData {
   if (!data || typeof data !== 'object') {
     throw new Error('coverage-final.json is not an object');
@@ -47,7 +52,13 @@ export function parseCoverage(coverageDir: string): CoverageData {
     throw new Error(`coverage-final.json is not valid JSON: ${message}`);
   }
   assertValidCoverage(parsed);
-  return parsed;
+
+  // Normalize coverage keys to forward slashes so lookups are platform-independent
+  const normalized: CoverageData = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    normalized[normalizePath(key)] = value;
+  }
+  return normalized;
 }
 
 export function coverageForRange(
@@ -72,8 +83,8 @@ export function coverageForRange(
 }
 
 export function sourceToModule(filePath: string, srcDir: string): string {
-  const normalized = filePath.replace(/\\/g, '/');
-  const src = srcDir.replace(/\\/g, '/').replace(/\/$/, '') + '/';
+  const normalized = normalizePath(filePath);
+  const src = normalizePath(srcDir).replace(/\/$/, '') + '/';
 
   let mod = normalized;
   if (mod.startsWith(src)) {

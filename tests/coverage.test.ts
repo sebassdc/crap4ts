@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { coverageForRange, sourceToModule, FileCoverageData } from '../src/coverage';
+import { describe, it, expect, vi } from 'vitest';
+import { coverageForRange, sourceToModule, normalizePath, parseCoverage, FileCoverageData } from '../src/coverage';
 
 function makeFileData(
   statements: Array<{ line: number; hits: number }>,
@@ -128,5 +128,93 @@ describe('sourceToModule', () => {
     const result = sourceToModule('/other/path/foo.ts', '/project/src');
     expect(result).toContain('foo');
     expect(result).not.toContain('.ts');
+  });
+});
+
+describe('normalizePath', () => {
+  it('converts backslashes to forward slashes', () => {
+    expect(normalizePath('C:\\Users\\dev\\project')).toBe('C:/Users/dev/project');
+  });
+
+  it('leaves forward slashes unchanged', () => {
+    expect(normalizePath('/home/user/project')).toBe('/home/user/project');
+  });
+
+  it('handles mixed slash styles', () => {
+    expect(normalizePath('C:\\Users\\dev/project/src\\index.ts')).toBe('C:/Users/dev/project/src/index.ts');
+  });
+
+  it('handles empty string', () => {
+    expect(normalizePath('')).toBe('');
+  });
+});
+
+describe('parseCoverage path normalization', () => {
+  it('normalizes Windows-style keys in coverage data', () => {
+    const tmpDir = '/tmp/test-coverage-normalization-' + Date.now();
+    const { mkdirSync, writeFileSync } = require('fs');
+    mkdirSync(tmpDir, { recursive: true });
+
+    const coverageData = {
+      'C:\\Users\\dev\\project\\src\\foo.ts': {
+        statementMap: {
+          '0': { start: { line: 1, column: 0 }, end: { line: 1, column: 10 } },
+        },
+        s: { '0': 1 },
+      },
+    };
+    writeFileSync(`${tmpDir}/coverage-final.json`, JSON.stringify(coverageData));
+
+    const parsed = parseCoverage(tmpDir);
+    // Key should be normalized to forward slashes
+    expect(parsed['C:/Users/dev/project/src/foo.ts']).toBeDefined();
+    expect(parsed['C:\\Users\\dev\\project\\src\\foo.ts']).toBeUndefined();
+
+    const { rmSync } = require('fs');
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('normalizes mixed slash styles in coverage keys', () => {
+    const tmpDir = '/tmp/test-coverage-mixed-' + Date.now();
+    const { mkdirSync, writeFileSync } = require('fs');
+    mkdirSync(tmpDir, { recursive: true });
+
+    const coverageData = {
+      'C:\\Users\\dev/project/src\\utils/helpers.ts': {
+        statementMap: {
+          '0': { start: { line: 1, column: 0 }, end: { line: 1, column: 10 } },
+        },
+        s: { '0': 3 },
+      },
+    };
+    writeFileSync(`${tmpDir}/coverage-final.json`, JSON.stringify(coverageData));
+
+    const parsed = parseCoverage(tmpDir);
+    expect(parsed['C:/Users/dev/project/src/utils/helpers.ts']).toBeDefined();
+
+    const { rmSync } = require('fs');
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('forward-slash keys pass through unchanged', () => {
+    const tmpDir = '/tmp/test-coverage-fwd-' + Date.now();
+    const { mkdirSync, writeFileSync } = require('fs');
+    mkdirSync(tmpDir, { recursive: true });
+
+    const coverageData = {
+      '/home/user/project/src/index.ts': {
+        statementMap: {
+          '0': { start: { line: 1, column: 0 }, end: { line: 5, column: 1 } },
+        },
+        s: { '0': 2 },
+      },
+    };
+    writeFileSync(`${tmpDir}/coverage-final.json`, JSON.stringify(coverageData));
+
+    const parsed = parseCoverage(tmpDir);
+    expect(parsed['/home/user/project/src/index.ts']).toBeDefined();
+
+    const { rmSync } = require('fs');
+    rmSync(tmpDir, { recursive: true, force: true });
   });
 });

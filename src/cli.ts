@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { runReport } from './report';
 import { parseOptions } from './options';
+import { loadConfig, mergeConfigIntoOptions } from './config';
 
 function getVersion(): string {
   const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'));
@@ -22,6 +23,7 @@ Options:
   --fail-on-complexity <n> Exit 1 if any function complexity >= n
   --fail-on-coverage-below <n>  Exit 1 if any function coverage < n (0-100)
   --top <n>                Show only the top N entries (thresholds check all)
+  --config <path>          Load config from a specific file
   --help, -h               Show this help message
   --version, -v            Show version number
 
@@ -44,7 +46,9 @@ export async function runCli(argv: string[]): Promise<number> {
       console.log(getVersion());
       return 0;
     }
-    return await runReport(opts);
+    const config = loadConfig(opts.configPath);
+    const merged = mergeConfigIntoOptions(opts, config);
+    return await runReport(merged);
   } catch (e) {
     console.error((e as Error).message);
     return 2;

@@ -4,12 +4,13 @@ import { parseOptions } from '../src/options';
 describe('parseOptions', () => {
   it('returns defaults when given no args', () => {
     expect(parseOptions([])).toEqual({
-      filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000,
+      mode: 'report', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000,
     });
   });
 
   it('parses --src and --timeout and treats the rest as filters', () => {
     const o = parseOptions(['--src', 'lib', '--timeout', '30', 'parser', 'validator']);
+    expect(o.mode).toBe('report');
     expect(o.srcDir).toBe('lib');
     expect(o.timeoutMs).toBe(30_000);
     expect(o.filters).toEqual(['parser', 'validator']);
@@ -17,5 +18,29 @@ describe('parseOptions', () => {
 
   it('rejects non-numeric --timeout', () => {
     expect(() => parseOptions(['--timeout', 'abc'])).toThrow(/timeout/);
+  });
+
+  it('returns mode: help for --help', () => {
+    expect(parseOptions(['--help'])).toEqual({
+      mode: 'help', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000,
+    });
+  });
+
+  it('returns mode: help for -h', () => {
+    expect(parseOptions(['-h'])).toEqual({
+      mode: 'help', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000,
+    });
+  });
+
+  it('returns mode: version for --version', () => {
+    expect(parseOptions(['--version'])).toEqual({
+      mode: 'version', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000,
+    });
+  });
+
+  it('returns mode: version for -v', () => {
+    expect(parseOptions(['-v'])).toEqual({
+      mode: 'version', filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 600_000,
+    });
   });
 });

@@ -1,4 +1,5 @@
 export interface CliOptions {
+  mode: 'report' | 'help' | 'version';
   filters: string[];
   srcDir: string;
   coverageDir: string;
@@ -13,7 +14,11 @@ export function parseOptions(argv: string[]): CliOptions {
 
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--src') {
+    if (a === '--help' || a === '-h') {
+      return { mode: 'help', filters: [], srcDir, coverageDir, timeoutMs };
+    } else if (a === '--version' || a === '-v') {
+      return { mode: 'version', filters: [], srcDir, coverageDir, timeoutMs };
+    } else if (a === '--src') {
       const v = argv[++i];
       if (!v) throw new Error('--src requires a directory argument');
       srcDir = v;
@@ -29,5 +34,5 @@ export function parseOptions(argv: string[]): CliOptions {
     }
   }
 
-  return { filters, srcDir, coverageDir, timeoutMs };
+  return { mode: 'report', filters, srcDir, coverageDir, timeoutMs };
 }

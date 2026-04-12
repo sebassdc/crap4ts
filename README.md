@@ -58,6 +58,7 @@ simpleFn                       my.module                           1 100.0%     
 npx crap4ts --help              # show usage and available options
 npx crap4ts --version           # print version number
 npx crap4ts --src lib           # analyze from lib/ instead of src/
+npx crap4ts --exclude dist      # exclude paths containing "dist"
 npx crap4ts --timeout 120       # set analysis timeout to 120 seconds
 ```
 
@@ -87,6 +88,21 @@ The JSON structure:
 ```
 
 Text output remains the default. Pass `--json` explicitly to switch formats.
+
+## Excluding Paths
+
+Use `--exclude` to filter out files whose path contains a given substring. The flag is repeatable:
+
+```bash
+# Skip dist and fixtures directories
+npx crap4ts --exclude dist --exclude fixtures
+
+# Analyze lib/ but skip generated code
+npx crap4ts --src lib --exclude __generated__
+
+# Combine with other options
+npx crap4ts --src packages/core/src --exclude __mocks__ --exclude .stories --json
+```
 
 ## Filtering
 

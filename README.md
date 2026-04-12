@@ -6,10 +6,14 @@ Combines cyclomatic complexity with test coverage to identify functions that are
 
 ## Quick Start
 
-Install as a dev dependency:
+Install from source:
 
 ```bash
-npm install --save-dev crap4ts
+git clone https://github.com/sebassdc/crap4ts.git
+cd crap4ts
+npm install
+npm run build
+npm install -g .
 ```
 
 Configure your test runner to emit Istanbul JSON coverage:
@@ -36,7 +40,7 @@ export default {
 Run from your project root (where `src/` lives):
 
 ```bash
-npx crap4ts
+crap4ts
 ```
 
 crap4ts automatically deletes stale coverage data, runs your test suite with coverage, and prints the report.
@@ -55,11 +59,11 @@ simpleFn                       my.module                           1 100.0%     
 ## CLI Options
 
 ```bash
-npx crap4ts --help              # show usage and available options
-npx crap4ts --version           # print version number
-npx crap4ts --src lib           # analyze from lib/ instead of src/
-npx crap4ts --exclude dist      # exclude paths containing "dist"
-npx crap4ts --timeout 120       # set analysis timeout to 120 seconds
+crap4ts --help              # show usage and available options
+crap4ts --version           # print version number
+crap4ts --src lib           # analyze from lib/ instead of src/
+crap4ts --exclude dist      # exclude paths containing "dist"
+crap4ts --timeout 120       # set analysis timeout to 120 seconds
 ```
 
 ## Configuration File
@@ -88,12 +92,12 @@ The first file found is used. If neither exists, all options use their defaults.
 To load a config file from a custom path, use the `--config` flag:
 
 ```bash
-npx crap4ts --config configs/crap4ts.json
+crap4ts --config configs/crap4ts.json
 ```
 
 ### CLI Override Precedence
 
-CLI flags always take precedence over config file values. For example, if your config file sets `"src": "lib"` but you run `npx crap4ts --src app`, the `app` directory is used.
+CLI flags always take precedence over config file values. For example, if your config file sets `"src": "lib"` but you run `crap4ts --src app`, the `app` directory is used.
 
 ### Supported Keys
 
@@ -169,10 +173,10 @@ Use threshold flags to fail CI when code quality drops below acceptable levels:
 
 ```bash
 # Fail if any function has CRAP >= 30 or coverage below 70%
-npx crap4ts --fail-on-crap 30 --fail-on-coverage-below 70
+crap4ts --fail-on-crap 30 --fail-on-coverage-below 70
 
 # Fail if any function has complexity >= 15, show only top 10
-npx crap4ts --fail-on-complexity 15 --top 10
+crap4ts --fail-on-complexity 15 --top 10
 ```
 
 Multiple thresholds can be combined. The report is always printed before any failure.
@@ -192,10 +196,10 @@ The `--top` flag limits displayed entries but all entries are evaluated against 
 crap4ts supports four output formats:
 
 ```bash
-npx crap4ts                      # default text table
-npx crap4ts --json               # JSON (shorthand for --output json)
-npx crap4ts --output markdown    # Markdown table
-npx crap4ts --output csv         # CSV
+crap4ts                      # default text table
+crap4ts --json               # JSON (shorthand for --output json)
+crap4ts --output markdown    # Markdown table
+crap4ts --output csv         # CSV
 ```
 
 ### Text (default)
@@ -253,13 +257,13 @@ Use `--exclude` to filter out files whose path contains a given substring. The f
 
 ```bash
 # Skip dist and fixtures directories
-npx crap4ts --exclude dist --exclude fixtures
+crap4ts --exclude dist --exclude fixtures
 
 # Analyze lib/ but skip generated code
-npx crap4ts --src lib --exclude __generated__
+crap4ts --src lib --exclude __generated__
 
 # Combine with other options
-npx crap4ts --src packages/core/src --exclude __mocks__ --exclude .stories --json
+crap4ts --src packages/core/src --exclude __mocks__ --exclude .stories --json
 ```
 
 ## Filtering
@@ -267,7 +271,7 @@ npx crap4ts --src packages/core/src --exclude __mocks__ --exclude .stories --jso
 Pass module path fragments as arguments to filter:
 
 ```bash
-npx crap4ts parser validator   # only files matching those strings
+crap4ts parser validator   # only files matching those strings
 ```
 
 ## CRAP Formula
@@ -341,21 +345,21 @@ skill directory consumed by Claude Code, Codex, Pi, and any harness that reads
 
 ```bash
 # Global install for the current user (~/.agents/skills/crap4ts/SKILL.md)
-npx crap4ts skill install
+crap4ts skill install
 
 # Project-local install (./.agents/skills/crap4ts/SKILL.md)
-npx crap4ts skill install --project
+crap4ts skill install --project
 
 # Print the bundled skill
-npx crap4ts skill show
+crap4ts skill show
 
 # Print where the skill is (or would be) installed
-npx crap4ts skill path
-npx crap4ts skill path --project
+crap4ts skill path
+crap4ts skill path --project
 
 # Remove
-npx crap4ts skill uninstall
-npx crap4ts skill uninstall --project
+crap4ts skill uninstall
+crap4ts skill uninstall --project
 ```
 
 The bundled skill lives inside the published package at `src/skill/SKILL.md`
@@ -367,14 +371,14 @@ Claude Code reads skills from `~/.claude/skills/`, not `~/.agents/skills/`.
 After installing, symlink the skill so both directories stay in sync:
 
 ```bash
-npx crap4ts skill install
+crap4ts skill install
 ln -s ~/.agents/skills/crap4ts ~/.claude/skills/crap4ts
 ```
 
 For project-local installs, symlink into `.claude/skills/` at the repo root:
 
 ```bash
-npx crap4ts skill install --project
+crap4ts skill install --project
 ln -s .agents/skills/crap4ts .claude/skills/crap4ts
 ```
 
@@ -388,13 +392,13 @@ Run an arbitrary shell command instead of the built-in runner logic. The command
 
 ```bash
 # Monorepo: run tests only for a specific package
-npx crap4ts --coverage-command "npm run test:api -- --coverage"
+crap4ts --coverage-command "npm run test:api -- --coverage"
 
 # Custom script with environment variables
-npx crap4ts --coverage-command "CI=1 yarn test --coverage --coverageReporters=json"
+crap4ts --coverage-command "CI=1 yarn test --coverage --coverageReporters=json"
 
 # Turborepo / Nx workspace
-npx crap4ts --coverage-command "npx turbo run test -- --coverage"
+crap4ts --coverage-command "npx turbo run test -- --coverage"
 ```
 
 The command must produce a `coverage/coverage-final.json` file in Istanbul JSON format.
@@ -405,10 +409,10 @@ Use the built-in runner invocation for Vitest or Jest, but skip the config-file 
 
 ```bash
 # Force Jest even if a vitest.config.ts exists
-npx crap4ts --runner jest
+crap4ts --runner jest
 
 # Force Vitest in a project without a vitest.config file
-npx crap4ts --runner vitest
+crap4ts --runner vitest
 ```
 
 ### 3. Auto-detection (default)

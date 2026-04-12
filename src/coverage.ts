@@ -59,8 +59,9 @@ export function coverageForRange(
   let covered = 0;
 
   for (const [id, loc] of Object.entries(fileData.statementMap)) {
-    // Istanbul uses 1-based line numbers
-    if (loc.start.line >= startLine && loc.start.line <= endLine) {
+    // Overlap check: statement overlaps function if it starts before the function ends
+    // AND ends after the function starts (standard range-overlap test).
+    if (loc.start.line <= endLine && loc.end.line >= startLine) {
       total++;
       if ((fileData.s[id] ?? 0) > 0) covered++;
     }

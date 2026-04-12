@@ -3,13 +3,14 @@ import { resolve } from 'path';
 import { spawnSync } from 'child_process';
 import { analyzeFile, filterSources, findSourceFiles } from './core';
 import { parseCoverage } from './coverage';
-import { formatReport, sortByCrap } from './crap';
+import { formatJsonReport, formatReport, sortByCrap } from './crap';
 
 export interface ReportOptions {
   filters: string[];
   srcDir: string;
   coverageDir: string;
   timeoutMs: number;
+  output: 'text' | 'json';
 }
 
 const VITEST_CONFIGS = ['vitest.config.ts', 'vitest.config.js', 'vitest.config.mts', 'vitest.config.mjs'];
@@ -99,6 +100,10 @@ export async function runReport(opts: ReportOptions): Promise<number> {
     console.warn('No functions found. crap4ts analyzes top-level functions, arrow functions, and class methods.');
   }
   const sorted = sortByCrap(allEntries);
-  console.log(formatReport(sorted));
+  if (opts.output === 'json') {
+    console.log(formatJsonReport(sorted));
+  } else {
+    console.log(formatReport(sorted));
+  }
   return 0;
 }

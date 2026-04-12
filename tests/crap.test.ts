@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { crapScore, sortByCrap, formatReport, formatJsonReport, formatMarkdownReport, CrapEntry } from '../src/crap';
+import { crapScore, sortByCrap, formatReport, formatJsonReport, formatMarkdownReport, formatCsvReport, CrapEntry } from '../src/crap';
 
 describe('crapScore', () => {
   it('fully covered code scores exactly CC', () => {
@@ -90,6 +90,33 @@ describe('formatReport', () => {
 
   it('ends with a trailing newline', () => {
     expect(formatReport([])).toMatch(/\n$/);
+  });
+});
+
+describe('formatCsvReport', () => {
+  it('has correct CSV header', () => {
+    const out = formatCsvReport([]);
+    expect(out).toContain('Function,Module,CC,Coverage,CRAP');
+  });
+
+  it('numeric fields are unquoted', () => {
+    const entries: CrapEntry[] = [
+      { name: 'myFunc', module: 'my.module', complexity: 5, coverage: 45.0, crap: 18.6 },
+    ];
+    const out = formatCsvReport(entries);
+    expect(out).toContain('myFunc,my.module,5,45.0,18.6');
+  });
+
+  it('fields with commas are quoted', () => {
+    const entries: CrapEntry[] = [
+      { name: 'fn,with,commas', module: 'mod,ule', complexity: 3, coverage: 80.0, crap: 4.2 },
+    ];
+    const out = formatCsvReport(entries);
+    expect(out).toContain('"fn,with,commas","mod,ule",3,80.0,4.2');
+  });
+
+  it('ends with a trailing newline', () => {
+    expect(formatCsvReport([])).toMatch(/\n$/);
   });
 });
 

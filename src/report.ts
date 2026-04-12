@@ -3,7 +3,7 @@ import { resolve } from 'path';
 import { spawnSync } from 'child_process';
 import { analyzeFile, filterSources, findSourceFiles } from './core';
 import { parseCoverage } from './coverage';
-import { CrapEntry, formatJsonReport, formatMarkdownReport, formatReport, sortByCrap } from './crap';
+import { CrapEntry, formatCsvReport, formatJsonReport, formatMarkdownReport, formatReport, sortByCrap } from './crap';
 
 export interface ReportOptions {
   filters: string[];
@@ -148,6 +148,8 @@ export async function runReport(opts: ReportOptions): Promise<number> {
     console.log(formatJsonReport(displayed));
   } else if (opts.output === 'markdown') {
     console.log(formatMarkdownReport(displayed));
+  } else if (opts.output === 'csv') {
+    console.log(formatCsvReport(displayed));
   } else {
     console.log(formatReport(displayed));
   }

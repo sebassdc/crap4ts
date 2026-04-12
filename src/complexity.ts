@@ -19,39 +19,34 @@ function isFunctionLike(node: ts.Node): boolean {
   );
 }
 
+const DECISION_KINDS = new Set([
+  ts.SyntaxKind.IfStatement,
+  ts.SyntaxKind.ConditionalExpression,
+  ts.SyntaxKind.ForStatement,
+  ts.SyntaxKind.ForInStatement,
+  ts.SyntaxKind.ForOfStatement,
+  ts.SyntaxKind.WhileStatement,
+  ts.SyntaxKind.DoStatement,
+  ts.SyntaxKind.CatchClause,
+  ts.SyntaxKind.CaseClause,
+]);
+
+const LOGICAL_OPS = new Set([
+  ts.SyntaxKind.AmpersandAmpersandToken,
+  ts.SyntaxKind.BarBarToken,
+  ts.SyntaxKind.QuestionQuestionToken,
+]);
+
+function nodeDecisionCount(node: ts.Node): number {
+  if (DECISION_KINDS.has(node.kind)) return 1;
+  if (ts.isBinaryExpression(node) && LOGICAL_OPS.has(node.operatorToken.kind)) return 1;
+  return 0;
+}
+
 function countDecisions(node: ts.Node): number {
-  // Don't recurse into nested function-like nodes
   if (isFunctionLike(node)) return 0;
 
-  let count = 0;
-
-  if (ts.isIfStatement(node)) {
-    count++;
-  } else if (ts.isConditionalExpression(node)) {
-    count++;
-  } else if (
-    ts.isForStatement(node) ||
-    ts.isForInStatement(node) ||
-    ts.isForOfStatement(node)
-  ) {
-    count++;
-  } else if (ts.isWhileStatement(node) || ts.isDoStatement(node)) {
-    count++;
-  } else if (ts.isCatchClause(node)) {
-    count++;
-  } else if (ts.isCaseClause(node)) {
-    // case X: counts; default: does not
-    count++;
-  } else if (ts.isBinaryExpression(node)) {
-    const op = node.operatorToken.kind;
-    if (
-      op === ts.SyntaxKind.AmpersandAmpersandToken ||
-      op === ts.SyntaxKind.BarBarToken ||
-      op === ts.SyntaxKind.QuestionQuestionToken
-    ) {
-      count++;
-    }
-  }
+  let count = nodeDecisionCount(node);
 
   node.forEachChild(child => {
     count += countDecisions(child);
@@ -64,6 +59,35 @@ function computeComplexity(node: ts.FunctionLikeDeclaration): number {
   const body = node.body;
   if (!body) return 1; // abstract method or overload signature
   return 1 + countDecisions(body);
+}
+
+type AddFn = (name: string, node: ts.FunctionLikeDeclaration) => void;
+
+function visitVariableStatement(stmt: ts.VariableStatement, add: AddFn): void {
+  for (const decl of stmt.declarationList.declarations) {
+    if (
+      ts.isIdentifier(decl.name) &&
+      decl.initializer &&
+      (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer))
+    ) {
+      add(decl.name.text, decl.initializer);
+    }
+  }
+}
+
+function visitClassDeclaration(stmt: ts.ClassDeclaration, add: AddFn): void {
+  if (!stmt.name) return;
+  const className = stmt.name.text;
+  for (const member of stmt.members) {
+    if (ts.isConstructorDeclaration(member)) {
+      add(`${className}.constructor`, member);
+    } else if (
+      (ts.isMethodDeclaration(member) || ts.isGetAccessorDeclaration(member) || ts.isSetAccessorDeclaration(member)) &&
+      ts.isIdentifier(member.name)
+    ) {
+      add(`${className}.${member.name.text}`, member);
+    }
+  }
 }
 
 export function extractFunctions(source: string, filePath = 'file.ts'): FunctionInfo[] {
@@ -87,30 +111,9 @@ export function extractFunctions(source: string, filePath = 'file.ts'): Function
     if (ts.isFunctionDeclaration(stmt) && stmt.name) {
       add(stmt.name.text, stmt);
     } else if (ts.isVariableStatement(stmt)) {
-      for (const decl of stmt.declarationList.declarations) {
-        if (
-          ts.isIdentifier(decl.name) &&
-          decl.initializer &&
-          (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer))
-        ) {
-          add(decl.name.text, decl.initializer);
-        }
-      }
-    } else if (ts.isClassDeclaration(stmt) && stmt.name) {
-      const className = stmt.name.text;
-      for (const member of stmt.members) {
-        if (ts.isConstructorDeclaration(member)) {
-          add(`${className}.constructor`, member);
-        } else if (
-          ts.isMethodDeclaration(member) ||
-          ts.isGetAccessorDeclaration(member) ||
-          ts.isSetAccessorDeclaration(member)
-        ) {
-          if (ts.isIdentifier(member.name)) {
-            add(`${className}.${member.name.text}`, member);
-          }
-        }
-      }
+      visitVariableStatement(stmt, add);
+    } else if (ts.isClassDeclaration(stmt)) {
+      visitClassDeclaration(stmt, add);
     }
   }
 

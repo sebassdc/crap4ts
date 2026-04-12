@@ -12,19 +12,23 @@ export interface ReportOptions {
   timeoutMs: number;
 }
 
-function detectRunner(): 'vitest' | 'jest' {
-  const vitestConfigs = ['vitest.config.ts', 'vitest.config.js', 'vitest.config.mts', 'vitest.config.mjs'];
-  if (vitestConfigs.some(f => existsSync(f))) return 'vitest';
-  const jestConfigs = ['jest.config.ts', 'jest.config.js', 'jest.config.mjs'];
-  if (jestConfigs.some(f => existsSync(f))) return 'jest';
-  if (existsSync('package.json')) {
-    const pkg = JSON.parse(readFileSync('package.json', 'utf-8'));
-    if (pkg.devDependencies?.jest || pkg.dependencies?.jest) return 'jest';
-  }
+const VITEST_CONFIGS = ['vitest.config.ts', 'vitest.config.js', 'vitest.config.mts', 'vitest.config.mjs'];
+const JEST_CONFIGS = ['jest.config.ts', 'jest.config.js', 'jest.config.mjs'];
+
+function hasJestInPackageJson(): boolean {
+  if (!existsSync('package.json')) return false;
+  const pkg = JSON.parse(readFileSync('package.json', 'utf-8'));
+  return !!(pkg.devDependencies?.jest || pkg.dependencies?.jest);
+}
+
+export function detectRunner(): 'vitest' | 'jest' {
+  if (VITEST_CONFIGS.some(f => existsSync(f))) return 'vitest';
+  if (JEST_CONFIGS.some(f => existsSync(f))) return 'jest';
+  if (hasJestInPackageJson()) return 'jest';
   return 'vitest';
 }
 
-function runCoverage(runner: 'vitest' | 'jest', timeoutMs: number): { ok: boolean; timedOut: boolean } {
+export function runCoverage(runner: 'vitest' | 'jest', timeoutMs: number): { ok: boolean; timedOut: boolean } {
   const cmd = runner === 'vitest'
     ? ['npx', 'vitest', 'run', '--coverage']
     : ['npx', 'jest', '--coverage', '--coverageReporters=json'];

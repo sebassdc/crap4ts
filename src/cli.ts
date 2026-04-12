@@ -18,6 +18,10 @@ Options:
   --json                   Output report as JSON instead of text
   --runner <vitest|jest>   Skip auto-detection, use specified test runner
   --coverage-command <cmd> Run a custom shell command for coverage instead
+  --fail-on-crap <n>       Exit 1 if any function CRAP score >= n
+  --fail-on-complexity <n> Exit 1 if any function complexity >= n
+  --fail-on-coverage-below <n>  Exit 1 if any function coverage < n (0-100)
+  --top <n>                Show only the top N entries (thresholds check all)
   --help, -h               Show this help message
   --version, -v            Show version number
 

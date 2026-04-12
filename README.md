@@ -62,6 +62,30 @@ npx crap4ts --exclude dist      # exclude paths containing "dist"
 npx crap4ts --timeout 120       # set analysis timeout to 120 seconds
 ```
 
+## CI Integration
+
+Use threshold flags to fail CI when code quality drops below acceptable levels:
+
+```bash
+# Fail if any function has CRAP >= 30 or coverage below 70%
+npx crap4ts --fail-on-crap 30 --fail-on-coverage-below 70
+
+# Fail if any function has complexity >= 15, show only top 10
+npx crap4ts --fail-on-complexity 15 --top 10
+```
+
+Multiple thresholds can be combined. The report is always printed before any failure.
+
+The `--top` flag limits displayed entries but all entries are evaluated against thresholds.
+
+### Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0    | Pass -- no threshold violations |
+| 1    | Threshold violated or runtime error |
+| 2    | Usage error (invalid flags or arguments) |
+
 ## JSON Output
 
 Use `--json` to get machine-readable output for CI pipelines and automation:

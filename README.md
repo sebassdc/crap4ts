@@ -61,6 +61,33 @@ npx crap4ts --src lib           # analyze from lib/ instead of src/
 npx crap4ts --timeout 120       # set analysis timeout to 120 seconds
 ```
 
+## JSON Output
+
+Use `--json` to get machine-readable output for CI pipelines and automation:
+
+```bash
+npx crap4ts --json > crap-report.json
+```
+
+The JSON structure:
+
+```json
+{
+  "tool": "crap4ts",
+  "entries": [
+    {
+      "name": "complexFn",
+      "module": "my.module",
+      "complexity": 12,
+      "coverage": 45,
+      "crap": 130.2
+    }
+  ]
+}
+```
+
+Text output remains the default. Pass `--json` explicitly to switch formats.
+
 ## Filtering
 
 Pass module path fragments as arguments to filter:

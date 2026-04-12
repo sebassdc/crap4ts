@@ -152,7 +152,7 @@ describe('runReport', () => {
     const errs: string[] = [];
     const err = vi.spyOn(console, 'error').mockImplementation((m: unknown) => { errs.push(String(m)); });
 
-    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000 });
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text' as const });
     expect(code).toBe(1);
     expect(errs.some(e => e.includes("Source directory 'src' not found"))).toBe(true);
     expect(errs.some(e => e.includes('--src'))).toBe(true);
@@ -167,7 +167,7 @@ describe('runReport', () => {
     const errs: string[] = [];
     const err = vi.spyOn(console, 'error').mockImplementation((m: unknown) => { errs.push(String(m)); });
 
-    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000 });
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text' as const });
     expect(code).toBe(1);
     expect(errs.some(e => e.includes("No TypeScript files found in 'src'"))).toBe(true);
     expect(mockSpawnSync).not.toHaveBeenCalled();
@@ -180,7 +180,7 @@ describe('runReport', () => {
     const errs: string[] = [];
     const err = vi.spyOn(console, 'error').mockImplementation((m: unknown) => { errs.push(String(m)); });
 
-    const code = await runReport({ filters: ['nonexistent'], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000 });
+    const code = await runReport({ filters: ['nonexistent'], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text' as const });
     expect(code).toBe(1);
     expect(errs.some(e => e.includes('No files match the filters'))).toBe(true);
     expect(errs.some(e => e.includes('nonexistent'))).toBe(true);
@@ -208,7 +208,7 @@ describe('runReport', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation((m: unknown) => { warns.push(String(m)); });
     writeFileSync(join(cwd, 'vitest.config.ts'), 'export default {}');
 
-    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000 });
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text' as const });
     expect(code).toBe(0);
     expect(warns.some(w => w.includes('No functions found'))).toBe(true);
     expect(warns.some(w => w.includes('top-level functions'))).toBe(true);
@@ -229,7 +229,7 @@ describe('runReport', () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
     writeFileSync(join(cwd, 'vitest.config.ts'), 'export default {}');
 
-    await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000 });
+    await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text' as const });
     expect(existsSync(join(coverageDir, 'stale.json'))).toBe(false);
 
     err.mockRestore();
@@ -256,7 +256,7 @@ describe('runReport', () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
     writeFileSync(join(cwd, 'vitest.config.ts'), 'export default {}');
 
-    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000 });
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text' as const });
     expect(code).toBe(1);
     err.mockRestore();
   });
@@ -269,7 +269,7 @@ describe('runReport', () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
     writeFileSync(join(cwd, 'vitest.config.ts'), 'export default {}');
 
-    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000 });
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text' as const });
     expect(code).toBe(1);
     err.mockRestore();
   });
@@ -300,10 +300,53 @@ describe('runReport', () => {
     const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
     writeFileSync(join(cwd, 'vitest.config.ts'), 'export default {}');
 
-    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000 });
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text' as const });
     expect(code).toBe(0);
     expect(logs.join('\n')).toContain('CRAP Report');
     expect(logs.join('\n')).toContain('hello');
+
+    log.mockRestore();
+  });
+
+  it('returns 0 and prints JSON report when output is json', async () => {
+    mkdirSync(join(cwd, 'src'));
+    writeFileSync(join(cwd, 'src', 'hello.ts'), 'export function hello() { return "hi"; }');
+
+    const coverageDir = join(cwd, 'coverage');
+    mockSpawnSync.mockImplementation(() => {
+      mkdirSync(coverageDir, { recursive: true });
+      const absPath = join(cwd, 'src', 'hello.ts');
+      const coverage = {
+        [absPath]: {
+          statementMap: {
+            '0': { start: { line: 1, column: 0 }, end: { line: 1, column: 40 } },
+          },
+          s: { '0': 1 },
+        },
+      };
+      writeFileSync(join(coverageDir, 'coverage-final.json'), JSON.stringify(coverage));
+      return {
+        status: 0, signal: null, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), pid: 1234,
+      } as any;
+    });
+
+    const logs: string[] = [];
+    const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+    writeFileSync(join(cwd, 'vitest.config.ts'), 'export default {}');
+
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'json' as const });
+    expect(code).toBe(0);
+
+    const parsed = JSON.parse(logs.join('\n'));
+    expect(parsed.tool).toBe('crap4ts');
+    expect(Array.isArray(parsed.entries)).toBe(true);
+    expect(parsed.entries.length).toBeGreaterThan(0);
+    const entry = parsed.entries[0];
+    expect(entry).toHaveProperty('name');
+    expect(entry).toHaveProperty('module');
+    expect(entry).toHaveProperty('complexity');
+    expect(entry).toHaveProperty('coverage');
+    expect(entry).toHaveProperty('crap');
 
     log.mockRestore();
   });

@@ -16,6 +16,10 @@ export function sortByCrap(entries: CrapEntry[]): CrapEntry[] {
   return [...entries].sort((a, b) => b.crap - a.crap);
 }
 
+export function formatJsonReport(entries: CrapEntry[]): string {
+  return JSON.stringify({ tool: 'crap4ts', entries }, null, 2);
+}
+
 export function formatReport(entries: CrapEntry[]): string {
   const header =
     `${'Function'.padEnd(30)} ${'Module'.padEnd(35)} ${'CC'.padStart(4)} ${'Cov%'.padStart(6)} ${'CRAP'.padStart(8)}`;

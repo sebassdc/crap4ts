@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { crapScore, sortByCrap, formatReport, CrapEntry } from '../src/crap';
+import { crapScore, sortByCrap, formatReport, formatJsonReport, CrapEntry } from '../src/crap';
 
 describe('crapScore', () => {
   it('fully covered code scores exactly CC', () => {
@@ -90,5 +90,39 @@ describe('formatReport', () => {
 
   it('ends with a trailing newline', () => {
     expect(formatReport([])).toMatch(/\n$/);
+  });
+});
+
+describe('formatJsonReport', () => {
+  it('returns valid JSON with correct structure', () => {
+    const entries: CrapEntry[] = [
+      { name: 'myFunc', module: 'my.module', complexity: 5, coverage: 45.0, crap: 18.6 },
+    ];
+    const result = formatJsonReport(entries);
+    const parsed = JSON.parse(result);
+    expect(parsed.tool).toBe('crap4ts');
+    expect(Array.isArray(parsed.entries)).toBe(true);
+  });
+
+  it('contains entries with expected fields', () => {
+    const entries: CrapEntry[] = [
+      { name: 'fn1', module: 'mod.a', complexity: 3, coverage: 80.0, crap: 4.2 },
+      { name: 'fn2', module: 'mod.b', complexity: 10, coverage: 0, crap: 110 },
+    ];
+    const parsed = JSON.parse(formatJsonReport(entries));
+    expect(parsed.entries).toHaveLength(2);
+    for (const entry of parsed.entries) {
+      expect(entry).toHaveProperty('name');
+      expect(entry).toHaveProperty('module');
+      expect(entry).toHaveProperty('complexity');
+      expect(entry).toHaveProperty('coverage');
+      expect(entry).toHaveProperty('crap');
+    }
+  });
+
+  it('returns empty entries array when given no entries', () => {
+    const parsed = JSON.parse(formatJsonReport([]));
+    expect(parsed.tool).toBe('crap4ts');
+    expect(parsed.entries).toEqual([]);
   });
 });

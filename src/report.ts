@@ -11,6 +11,8 @@ export interface ReportOptions {
   coverageDir: string;
   timeoutMs: number;
   output: 'text' | 'json';
+  runner?: 'vitest' | 'jest';
+  coverageCommand?: string;
 }
 
 const VITEST_CONFIGS = ['vitest.config.ts', 'vitest.config.js', 'vitest.config.mts', 'vitest.config.mjs'];
@@ -71,8 +73,18 @@ export async function runReport(opts: ReportOptions): Promise<number> {
     }
   }
 
-  const runner = detectRunner();
-  const { ok, timedOut } = runCoverage(runner, timeoutMs);
+  let ok: boolean;
+  let timedOut: boolean;
+
+  if (opts.coverageCommand) {
+    const result = spawnSync(opts.coverageCommand, [], { shell: true, stdio: 'inherit', timeout: timeoutMs });
+    timedOut = result.signal === 'SIGTERM' && result.status === null;
+    ok = result.status === 0;
+  } else {
+    const runner = opts.runner ?? detectRunner();
+    ({ ok, timedOut } = runCoverage(runner, timeoutMs));
+  }
+
   if (timedOut) {
     console.error(`Coverage run timed out after ${timeoutMs / 1000}s.`);
     return 1;

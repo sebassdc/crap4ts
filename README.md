@@ -361,6 +361,23 @@ npx crap4ts skill uninstall --project
 The bundled skill lives inside the published package at `src/skill/SKILL.md`
 and is shipped via the `files` field in `package.json`.
 
+### Claude Code
+
+Claude Code reads skills from `~/.claude/skills/`, not `~/.agents/skills/`.
+After installing, symlink the skill so both directories stay in sync:
+
+```bash
+npx crap4ts skill install
+ln -s ~/.agents/skills/crap4ts ~/.claude/skills/crap4ts
+```
+
+For project-local installs, symlink into `.claude/skills/` at the repo root:
+
+```bash
+npx crap4ts skill install --project
+ln -s .agents/skills/crap4ts .claude/skills/crap4ts
+```
+
 ## Runner Configuration
 
 crap4ts supports three ways to run your test suite for coverage, applied in this order of precedence:

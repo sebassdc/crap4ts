@@ -132,6 +132,18 @@ npx crap4ts skill uninstall --project
 The bundled skill lives inside the published package at `src/skill/SKILL.md`
 and is shipped via the `files` field in `package.json`.
 
+## Troubleshooting
+
+| Error | Fix |
+|-------|-----|
+| `Source directory 'src' not found` | Use `--src <dir>` to point to your source directory |
+| `No TypeScript files found` | Verify your source directory contains `.ts` files |
+| `No files match the filters` | Check your filter arguments match actual file paths |
+| `Unable to parse package.json` | Fix your `package.json` or use `--runner vitest\|jest` |
+| `Coverage run failed` | Ensure your test suite passes independently before running crap4ts |
+| `No coverage-final.json found` | Configure your test runner to output Istanbul JSON coverage (see Quick Start) |
+| `Coverage run timed out` | Increase timeout with `--timeout <seconds>` |
+
 ## Development
 
 ```bash

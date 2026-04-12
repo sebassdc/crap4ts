@@ -112,6 +112,55 @@ CLI flags always take precedence over config file values. For example, if your c
 
 Unknown keys are silently ignored, so config files are forward-compatible with future versions.
 
+## Programmatic API
+
+crap4ts can be used as a library in your own tools and scripts. The API assumes coverage data already exists (run your test suite with coverage first).
+
+```ts
+import { generateReport, crapScore, extractFunctions } from 'crap4ts';
+
+// High-level: analyze an entire source tree against existing coverage
+const { entries } = generateReport({
+  srcDir: 'src',
+  coverageDir: 'coverage',
+});
+
+entries.forEach(e => console.log(`${e.name}: CRAP ${e.crap}`));
+```
+
+### `generateReport(options)`
+
+Finds source files, parses coverage, analyzes each file, and returns entries sorted by CRAP score. This does **not** run your test suite -- it reads from an existing `coverage-final.json`.
+
+| Option        | Type       | Description                                      | Default |
+|---------------|------------|--------------------------------------------------|---------|
+| `srcDir`      | `string`   | Source directory to scan for `.ts` files          | --      |
+| `coverageDir` | `string`   | Directory containing `coverage-final.json`        | --      |
+| `filters`     | `string[]` | Only include files matching these substrings      | `[]`    |
+| `excludes`    | `string[]` | Exclude files whose path contains these substrings| `[]`    |
+
+### Low-level exports
+
+For fine-grained control, individual functions are also exported:
+
+```ts
+import {
+  extractFunctions,    // parse a TS source string into FunctionInfo[]
+  parseCoverage,       // read coverage-final.json from a directory
+  coverageForRange,    // get coverage % for a line range
+  sourceToModule,      // convert file path to dotted module name
+  crapScore,           // compute CRAP score from complexity and coverage
+  sortByCrap,          // sort CrapEntry[] by CRAP descending
+  formatReport,        // render text table from CrapEntry[]
+  formatJsonReport,    // render JSON string from CrapEntry[]
+  findSourceFiles,     // find all .ts files in a directory
+  filterSources,       // filter file list by substring patterns
+  analyzeFile,         // analyze a single file against coverage data
+} from 'crap4ts';
+```
+
+TypeScript types `CrapEntry`, `FunctionInfo`, `CoverageData`, and `FileCoverageData` are also exported.
+
 ## CI Integration
 
 Use threshold flags to fail CI when code quality drops below acceptable levels:

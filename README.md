@@ -52,6 +52,15 @@ complexFn                      my.module                          12  45.0%    1
 simpleFn                       my.module                           1 100.0%      1.0
 ```
 
+## CLI Options
+
+```bash
+npx crap4ts --help              # show usage and available options
+npx crap4ts --version           # print version number
+npx crap4ts --src lib           # analyze from lib/ instead of src/
+npx crap4ts --timeout 120       # set analysis timeout to 120 seconds
+```
+
 ## Filtering
 
 Pass module path fragments as arguments to filter:

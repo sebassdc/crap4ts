@@ -2,3 +2,11 @@ node_modules/
 dist/
 coverage/
 *.js.map
+*.tsbuildinfo
+.vitest-cache/
+.DS_Store
+.idea/
+.vscode/
+*.log
+.env
+.agents/

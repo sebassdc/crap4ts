@@ -424,6 +424,10 @@ npm run build     # compile to dist/
 npm run coverage  # run tests with coverage
 ```
 
+## Inspiration
+
+This project was inspired by [crap4clj](https://github.com/unclebob/crap4clj) by Uncle Bob.
+
 ## License
 
 MIT

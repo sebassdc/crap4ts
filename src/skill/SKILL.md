@@ -24,9 +24,13 @@ coverage: {
 coverageReporters: ['text', 'json']
 ```
 
-Install crap4ts:
+Install crap4ts from source:
 ```bash
-npm install --save-dev crap4ts
+git clone https://github.com/sebassdc/crap4ts.git
+cd crap4ts
+npm install
+npm run build
+npm install -g .
 ```
 
 ## Usage
@@ -34,16 +38,16 @@ npm install --save-dev crap4ts
 Run from the project root (where `src/` lives):
 
 ```bash
-npx crap4ts
+crap4ts
 
 # Filter to specific modules
-npx crap4ts parser validator
+crap4ts parser validator
 
 # Exclude paths
-npx crap4ts --exclude dist --exclude fixtures
+crap4ts --exclude dist --exclude fixtures
 
 # Custom source directory
-npx crap4ts --src packages/core/src
+crap4ts --src packages/core/src
 ```
 
 crap4ts automatically deletes stale coverage data, runs the test suite with coverage, and prints the report.
@@ -117,7 +121,7 @@ simpleFn                       my.module                           1 100.0%     
 Use `--fail-on-*` flags to enforce quality gates:
 
 ```bash
-npx crap4ts --fail-on-crap 30 --fail-on-complexity 15 --fail-on-coverage-below 70
+crap4ts --fail-on-crap 30 --fail-on-complexity 15 --fail-on-coverage-below 70
 ```
 
 Exit codes: `0` success, `1` threshold violation or error, `2` usage error.
@@ -127,17 +131,7 @@ Exit codes: `0` success, `1` threshold violation or error, `2` usage error.
 For non-standard setups, bypass runner auto-detection entirely:
 
 ```bash
-npx crap4ts --coverage-command "CI=1 yarn test --coverage --coverageReporters=json"
-```
-
-### Skill Management
-
-```bash
-npx crap4ts skill install           # Install globally
-npx crap4ts skill install --project # Install to ./.agents/skills/
-npx crap4ts skill uninstall         # Remove skill
-npx crap4ts skill show              # Print skill content
-npx crap4ts skill path              # Print install path
+crap4ts --coverage-command "CI=1 yarn test --coverage --coverageReporters=json"
 ```
 
 ## Interpreting Scores

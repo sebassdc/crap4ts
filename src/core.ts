@@ -4,21 +4,33 @@ import { extractFunctions } from './complexity';
 import { CoverageData, coverageForRange, sourceToModule } from './coverage';
 import { CrapEntry, crapScore } from './crap';
 
-export function findSourceFiles(srcDir: string): string[] {
-  const files: string[] = [];
+export interface SourceScanOptions {
+  srcDirs: string[];
+  excludes: string[];
+}
+
+export function findSourceFilesWithOptions(opts: SourceScanOptions): string[] {
+  const fileSet = new Set<string>();
   function walk(dir: string): void {
     for (const entry of readdirSync(dir)) {
       if (entry === 'node_modules') continue;
       const full = join(dir, entry);
+      if (opts.excludes.some(ex => full.includes(ex))) continue;
       if (statSync(full).isDirectory()) {
         walk(full);
       } else if (/\.(ts|tsx)$/.test(entry) && !entry.endsWith('.d.ts')) {
-        files.push(full);
+        fileSet.add(full);
       }
     }
   }
-  walk(srcDir);
-  return files.sort();
+  for (const srcDir of opts.srcDirs) {
+    walk(srcDir);
+  }
+  return [...fileSet].sort();
+}
+
+export function findSourceFiles(srcDir: string): string[] {
+  return findSourceFilesWithOptions({ srcDirs: [srcDir], excludes: [] });
 }
 
 export function filterSources(files: string[], filters: string[]): string[] {

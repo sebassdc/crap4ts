@@ -203,6 +203,74 @@ describe('extractFunctions', () => {
     expect(fns).toHaveLength(0);
   });
 
+  describe('object literal methods', () => {
+    it('extracts simple method from object literal', () => {
+      const fns = extractFunctions('const api = { getUser() { return 1; } };');
+      expect(fns).toHaveLength(1);
+      expect(fns[0].name).toBe('api.getUser');
+      expect(fns[0].complexity).toBe(1);
+    });
+
+    it('extracts getter from object literal', () => {
+      const fns = extractFunctions("const obj = { get name() { return 'x'; } };");
+      expect(fns).toHaveLength(1);
+      expect(fns[0].name).toBe('obj.name');
+    });
+
+    it('extracts setter from object literal', () => {
+      const fns = extractFunctions('const obj = { set name(v: string) { } };');
+      expect(fns).toHaveLength(1);
+      expect(fns[0].name).toBe('obj.name');
+    });
+
+    it('extracts method with string-literal key using bracket notation', () => {
+      const fns = extractFunctions("const obj = { 'my-method'() { return 1; } };");
+      expect(fns).toHaveLength(1);
+      expect(fns[0].name).toBe("obj['my-method']");
+    });
+
+    it('skips computed property names', () => {
+      const fns = extractFunctions('const obj = { [Symbol.iterator]() { return 1; } };');
+      expect(fns).toHaveLength(0);
+    });
+
+    it('extracts only top-level object methods, not nested objects', () => {
+      const code = `const outer = {
+        method() { return 1; },
+        inner: {
+          nested() { return 2; },
+        },
+      };`;
+      const fns = extractFunctions(code);
+      expect(fns).toHaveLength(1);
+      expect(fns[0].name).toBe('outer.method');
+    });
+
+    it('returns no functions for empty object', () => {
+      const fns = extractFunctions('const obj = {};');
+      expect(fns).toHaveLength(0);
+    });
+
+    it('extracts multiple methods from one object', () => {
+      const code = `const api = {
+        getUser() { return 1; },
+        getPost() { if (true) return 2; return 3; },
+      };`;
+      const fns = extractFunctions(code);
+      expect(fns).toHaveLength(2);
+      expect(fns[0].name).toBe('api.getUser');
+      expect(fns[0].complexity).toBe(1);
+      expect(fns[1].name).toBe('api.getPost');
+      expect(fns[1].complexity).toBe(2);
+    });
+
+    it('works with exported object literals', () => {
+      const fns = extractFunctions('export const api = { getUser() { return 1; } };');
+      expect(fns).toHaveLength(1);
+      expect(fns[0].name).toBe('api.getUser');
+    });
+  });
+
   it('records correct start and end lines', () => {
     const src = `function foo() {\n  return 1;\n}`;
     const fns = extractFunctions(src);

@@ -63,14 +63,31 @@ function computeComplexity(node: ts.FunctionLikeDeclaration): number {
 
 type AddFn = (name: string, node: ts.FunctionLikeDeclaration) => void;
 
+function visitObjectLiteralMethods(varName: string, obj: ts.ObjectLiteralExpression, add: AddFn): void {
+  for (const prop of obj.properties) {
+    if (
+      ts.isMethodDeclaration(prop) ||
+      ts.isGetAccessorDeclaration(prop) ||
+      ts.isSetAccessorDeclaration(prop)
+    ) {
+      if (ts.isIdentifier(prop.name)) {
+        add(`${varName}.${prop.name.text}`, prop);
+      } else if (ts.isStringLiteral(prop.name)) {
+        add(`${varName}['${prop.name.text}']`, prop);
+      }
+      // Skip computed property names (e.g., [Symbol.iterator])
+    }
+  }
+}
+
 function visitVariableStatement(stmt: ts.VariableStatement, add: AddFn): void {
   for (const decl of stmt.declarationList.declarations) {
-    if (
-      ts.isIdentifier(decl.name) &&
-      decl.initializer &&
-      (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer))
-    ) {
+    if (!ts.isIdentifier(decl.name) || !decl.initializer) continue;
+
+    if (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer)) {
       add(decl.name.text, decl.initializer);
+    } else if (ts.isObjectLiteralExpression(decl.initializer)) {
+      visitObjectLiteralMethods(decl.name.text, decl.initializer, add);
     }
   }
 }

@@ -3,7 +3,7 @@ import { resolve } from 'path';
 import { spawnSync } from 'child_process';
 import { analyzeFile, filterSources, findSourceFiles } from './core';
 import { parseCoverage } from './coverage';
-import { formatJsonReport, formatReport, sortByCrap } from './crap';
+import { CrapEntry, formatJsonReport, formatReport, sortByCrap } from './crap';
 
 export interface ReportOptions {
   filters: string[];
@@ -14,6 +14,10 @@ export interface ReportOptions {
   excludes: string[];
   runner?: 'vitest' | 'jest';
   coverageCommand?: string;
+  failOnCrap?: number;
+  failOnComplexity?: number;
+  failOnCoverageBelow?: number;
+  top?: number;
 }
 
 const VITEST_CONFIGS = ['vitest.config.ts', 'vitest.config.js', 'vitest.config.mts', 'vitest.config.mjs'];
@@ -44,6 +48,28 @@ export function runCoverage(runner: 'vitest' | 'jest', timeoutMs: number): { ok:
   const result = spawnSync(cmd[0], cmd.slice(1), { stdio: 'inherit', timeout: timeoutMs });
   const timedOut = result.signal === 'SIGTERM' && result.status === null;
   return { ok: result.status === 0, timedOut };
+}
+
+export function evaluateThresholds(entries: CrapEntry[], opts: ReportOptions): string | null {
+  if (opts.failOnCrap != null) {
+    const violations = entries.filter(e => e.crap >= opts.failOnCrap!);
+    if (violations.length > 0) {
+      return `CI failed: ${violations.length} function(s) exceed CRAP threshold of ${opts.failOnCrap}`;
+    }
+  }
+  if (opts.failOnComplexity != null) {
+    const violations = entries.filter(e => e.complexity >= opts.failOnComplexity!);
+    if (violations.length > 0) {
+      return `CI failed: ${violations.length} function(s) exceed complexity threshold of ${opts.failOnComplexity}`;
+    }
+  }
+  if (opts.failOnCoverageBelow != null) {
+    const violations = entries.filter(e => e.coverage < opts.failOnCoverageBelow!);
+    if (violations.length > 0) {
+      return `CI failed: ${violations.length} function(s) below coverage threshold of ${opts.failOnCoverageBelow}%`;
+    }
+  }
+  return null;
 }
 
 export async function runReport(opts: ReportOptions): Promise<number> {
@@ -117,10 +143,17 @@ export async function runReport(opts: ReportOptions): Promise<number> {
     console.warn('No functions found. crap4ts analyzes top-level functions, arrow functions, and class methods.');
   }
   const sorted = sortByCrap(allEntries);
+  const displayed = opts.top != null ? sorted.slice(0, opts.top) : sorted;
   if (opts.output === 'json') {
-    console.log(formatJsonReport(sorted));
+    console.log(formatJsonReport(displayed));
   } else {
-    console.log(formatReport(sorted));
+    console.log(formatReport(displayed));
+  }
+
+  const failureMessage = evaluateThresholds(sorted, opts);
+  if (failureMessage) {
+    console.error(failureMessage);
+    return 1;
   }
   return 0;
 }

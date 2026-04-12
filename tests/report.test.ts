@@ -9,7 +9,7 @@ vi.mock('child_process', async (importOriginal) => {
 });
 
 import { spawnSync } from 'child_process';
-import { detectRunner, runCoverage, runReport } from '../src/report';
+import { detectRunner, evaluateThresholds, runCoverage, runReport } from '../src/report';
 
 const mockSpawnSync = vi.mocked(spawnSync);
 
@@ -440,5 +440,164 @@ describe('runReport', () => {
     expect(entry).toHaveProperty('crap');
 
     log.mockRestore();
+  });
+
+  function setupSuccessfulCoverage(cwdDir: string, files: Array<{name: string; content: string}>): void {
+    mkdirSync(join(cwdDir, 'src'), { recursive: true });
+    for (const f of files) {
+      writeFileSync(join(cwdDir, 'src', f.name), f.content);
+    }
+    writeFileSync(join(cwdDir, 'vitest.config.ts'), 'export default {}');
+
+    const coverageDir = join(cwdDir, 'coverage');
+    mockSpawnSync.mockImplementation(() => {
+      mkdirSync(coverageDir, { recursive: true });
+      const coverage: Record<string, any> = {};
+      for (const f of files) {
+        const absPath = join(cwdDir, 'src', f.name);
+        coverage[absPath] = {
+          statementMap: {
+            '0': { start: { line: 1, column: 0 }, end: { line: 1, column: 100 } },
+          },
+          s: { '0': 0 }, // 0 hits = 0% coverage
+        };
+      }
+      writeFileSync(join(coverageDir, 'coverage-final.json'), JSON.stringify(coverage));
+      return {
+        status: 0, signal: null, output: [], stdout: Buffer.from(''), stderr: Buffer.from(''), pid: 1234,
+      } as any;
+    });
+  }
+
+  it('returns 1 when entry exceeds failOnCrap threshold', async () => {
+    setupSuccessfulCoverage(cwd, [
+      { name: 'complex.ts', content: 'export function complex(a: boolean, b: boolean, c: boolean, d: boolean) { if (a) { if (b) { if (c) { if (d) { return 1; } } } } return 0; }' },
+    ]);
+
+    const logs: string[] = [];
+    const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+    const errs: string[] = [];
+    const err = vi.spyOn(console, 'error').mockImplementation((m: unknown) => { errs.push(String(m)); });
+
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text', failOnCrap: 1 });
+    expect(code).toBe(1);
+    expect(logs.join('\n')).toContain('CRAP Report');
+    expect(errs.some(e => e.includes('CI failed') && e.includes('CRAP threshold'))).toBe(true);
+
+    log.mockRestore();
+    err.mockRestore();
+  });
+
+  it('returns 1 when entry exceeds failOnComplexity threshold', async () => {
+    setupSuccessfulCoverage(cwd, [
+      { name: 'complex.ts', content: 'export function complex(a: boolean, b: boolean) { if (a) { if (b) { return 1; } } return 0; }' },
+    ]);
+
+    const errs: string[] = [];
+    const err = vi.spyOn(console, 'error').mockImplementation((m: unknown) => { errs.push(String(m)); });
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text', failOnComplexity: 2 });
+    expect(code).toBe(1);
+    expect(errs.some(e => e.includes('CI failed') && e.includes('complexity threshold'))).toBe(true);
+
+    log.mockRestore();
+    err.mockRestore();
+  });
+
+  it('returns 1 when entry below failOnCoverageBelow threshold', async () => {
+    setupSuccessfulCoverage(cwd, [
+      { name: 'uncovered.ts', content: 'export function uncovered() { return 1; }' },
+    ]);
+
+    const errs: string[] = [];
+    const err = vi.spyOn(console, 'error').mockImplementation((m: unknown) => { errs.push(String(m)); });
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text', failOnCoverageBelow: 50 });
+    expect(code).toBe(1);
+    expect(errs.some(e => e.includes('CI failed') && e.includes('coverage threshold'))).toBe(true);
+
+    log.mockRestore();
+    err.mockRestore();
+  });
+
+  it('returns 0 when no threshold violations', async () => {
+    setupSuccessfulCoverage(cwd, [
+      { name: 'simple.ts', content: 'export function simple() { return 1; }' },
+    ]);
+
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Very generous thresholds that won't be exceeded
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text', failOnCrap: 9999 });
+    expect(code).toBe(0);
+
+    log.mockRestore();
+    err.mockRestore();
+  });
+
+  it('--top limits displayed entries but evaluates all for thresholds', async () => {
+    setupSuccessfulCoverage(cwd, [
+      { name: 'a.ts', content: 'export function a(x: boolean) { if (x) { return 1; } return 0; }' },
+      { name: 'b.ts', content: 'export function b(x: boolean, y: boolean) { if (x) { if (y) { return 1; } } return 0; }' },
+      { name: 'c.ts', content: 'export function c() { return 1; }' },
+    ]);
+
+    const logs: string[] = [];
+    const log = vi.spyOn(console, 'log').mockImplementation((m: unknown) => { logs.push(String(m)); });
+    const errs: string[] = [];
+    const err = vi.spyOn(console, 'error').mockImplementation((m: unknown) => { errs.push(String(m)); });
+
+    // top 1 but failOnCrap 1 should still catch all 3 functions
+    const code = await runReport({ filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text', top: 1, failOnCrap: 1 });
+    expect(code).toBe(1);
+    // Report printed with limited entries
+    const reportText = logs.join('\n');
+    expect(reportText).toContain('CRAP Report');
+    // Threshold message should mention functions from ALL entries
+    expect(errs.some(e => e.includes('CI failed'))).toBe(true);
+
+    log.mockRestore();
+    err.mockRestore();
+  });
+});
+
+describe('evaluateThresholds', () => {
+  const entries = [
+    { name: 'highCrap', module: 'mod', complexity: 15, coverage: 20, crap: 200 },
+    { name: 'lowCrap', module: 'mod', complexity: 1, coverage: 100, crap: 1 },
+    { name: 'midCrap', module: 'mod', complexity: 5, coverage: 50, crap: 20 },
+  ];
+
+  it('returns null when no thresholds set', () => {
+    expect(evaluateThresholds(entries, { filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text' })).toBeNull();
+  });
+
+  it('returns failure message for CRAP threshold', () => {
+    const msg = evaluateThresholds(entries, { filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text', failOnCrap: 30 });
+    expect(msg).toContain('CI failed');
+    expect(msg).toContain('CRAP threshold of 30');
+    expect(msg).toContain('1 function(s)');
+  });
+
+  it('returns failure message for complexity threshold', () => {
+    const msg = evaluateThresholds(entries, { filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text', failOnComplexity: 10 });
+    expect(msg).toContain('CI failed');
+    expect(msg).toContain('complexity threshold of 10');
+    expect(msg).toContain('1 function(s)');
+  });
+
+  it('returns failure message for coverage threshold', () => {
+    const msg = evaluateThresholds(entries, { filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text', failOnCoverageBelow: 80 });
+    expect(msg).toContain('CI failed');
+    expect(msg).toContain('coverage threshold of 80%');
+    expect(msg).toContain('2 function(s)');
+  });
+
+  it('returns null when all entries pass thresholds', () => {
+    const msg = evaluateThresholds(entries, { filters: [], srcDir: 'src', coverageDir: 'coverage', timeoutMs: 60000, output: 'text', failOnCrap: 9999, failOnComplexity: 9999, failOnCoverageBelow: 0 });
+    expect(msg).toBeNull();
   });
 });

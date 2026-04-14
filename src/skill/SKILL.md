@@ -24,7 +24,12 @@ coverage: {
 coverageReporters: ['text', 'json']
 ```
 
-Install crap4ts from source:
+Install crap4ts from npm:
+```bash
+npm install -g @sebassdc/crap4ts
+```
+
+Or from source:
 ```bash
 git clone https://github.com/sebassdc/crap4ts.git
 cd crap4ts
@@ -145,7 +150,7 @@ crap4ts --coverage-command "CI=1 yarn test --coverage --coverageReporters=json"
 ## Programmatic API
 
 ```typescript
-import { generateReport } from 'crap4ts';
+import { generateReport } from '@sebassdc/crap4ts';
 
 const { entries } = generateReport({
   srcDir: 'src',

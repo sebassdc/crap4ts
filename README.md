@@ -6,7 +6,13 @@ Combines cyclomatic complexity with test coverage to identify functions that are
 
 ## Quick Start
 
-Install from source:
+Install from npm:
+
+```bash
+npm install -g @sebassdc/crap4ts
+```
+
+Or from source:
 
 ```bash
 git clone https://github.com/sebassdc/crap4ts.git
@@ -121,7 +127,7 @@ Unknown keys are silently ignored, so config files are forward-compatible with f
 crap4ts can be used as a library in your own tools and scripts. The API assumes coverage data already exists (run your test suite with coverage first).
 
 ```ts
-import { generateReport, crapScore, extractFunctions } from 'crap4ts';
+import { generateReport, crapScore, extractFunctions } from '@sebassdc/crap4ts';
 
 // High-level: analyze an entire source tree against existing coverage
 const { entries } = generateReport({
@@ -162,7 +168,7 @@ import {
   findSourceFiles,     // find all .ts files in a directory
   filterSources,       // filter file list by substring patterns
   analyzeFile,         // analyze a single file against coverage data
-} from 'crap4ts';
+} from '@sebassdc/crap4ts';
 ```
 
 TypeScript types `CrapEntry`, `FunctionInfo`, `CoverageData`, and `FileCoverageData` are also exported.

@@ -1,6 +1,9 @@
 {
-  "name": "crap4ts",
+  "name": "@sebassdc/crap4ts",
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "CRAP metric CLI for TypeScript: combines cyclomatic complexity and test coverage to find risky code, with a bundled cross-agent AI skill.",
   "main": "dist/api.js",
   "types": "dist/api.d.ts",
@@ -9,18 +12,38 @@
     "./cli": "./dist/index.js"
   },
   "bin": {
-    "crap4ts": "./dist/index.js"
+    "crap4ts": "dist/index.js"
   },
-  "files": ["dist", "src/skill/SKILL.md", "README.md", "LICENSE"],
-  "engines": { "node": ">=18" },
+  "files": [
+    "dist",
+    "src/skill/SKILL.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "license": "MIT",
   "keywords": [
-    "typescript", "cli", "testing", "coverage",
-    "cyclomatic-complexity", "code-quality", "static-analysis",
-    "metrics", "crap", "ai-agent", "skill"
+    "typescript",
+    "cli",
+    "testing",
+    "coverage",
+    "cyclomatic-complexity",
+    "code-quality",
+    "static-analysis",
+    "metrics",
+    "crap",
+    "ai-agent",
+    "skill"
   ],
-  "repository": { "type": "git", "url": "https://github.com/sebassdc/crap4ts.git" },
-  "bugs": { "url": "https://github.com/sebassdc/crap4ts/issues" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sebassdc/crap4ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sebassdc/crap4ts/issues"
+  },
   "homepage": "https://github.com/sebassdc/crap4ts#readme",
   "scripts": {
     "build": "tsc",

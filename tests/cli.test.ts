@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { runCli } from '../src/cli';
 
 describe('runCli', () => {
@@ -44,11 +45,12 @@ describe('runCli', () => {
   });
 
   it('version output matches package.json version', async () => {
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
     const logs: string[] = [];
     const log = vi.spyOn(console, 'log').mockImplementation(m => { logs.push(String(m)); });
     await runCli(['--version']);
     log.mockRestore();
     const output = logs.join('\n');
-    expect(output).toContain('0.1.0');
+    expect(output).toContain(pkg.version);
   });
 });
